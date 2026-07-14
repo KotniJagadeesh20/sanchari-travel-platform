@@ -1,0 +1,72 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/auth/**
+
+        - id: bus-booking-service
+          uri: lb://bus-booking-service
+          predicates:
+            - Path=/api/**, /admin/**
+
+        - id: ride-share-service
+          uri: lb://ride-share-service
+          predicates:
+            - Path=/rides/**
+
+        - id: travel-packages-service
+          uri: lb://travel-packages-service
+          predicates:
+            - Path=/packages/**, /destinations/**
+
+        - id: hotel-service
+          uri: lb://hotel-service
+          predicates:
+            - Path=/hotels/**, /hotel-bookings/**
+
+        # Only /notifications/** is routed — /internal/** (notification creation)
+        # is deliberately NOT exposed here. It's service-to-service only, reached
+        # directly via Eureka by other services, guarded by X-Internal-Api-Key.
+        # See notification-service's InternalApiKeyFilter and ARCHITECTURE.md.
+        - id: notification-service
+          uri: lb://notification-service
+          predicates:
+            - Path=/notifications/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+jwt:
+  secret: ${JWT_SECRET:bvvrysgguveuuggynuugrsyfnngyuwgnygnsgyngnugycutjngjhnss}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,metrics
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+
+logstash:
+  host: ${LOGSTASH_HOST:localhost}
+  port: ${LOGSTASH_PORT:5000}
