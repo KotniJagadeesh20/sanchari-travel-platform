@@ -108,7 +108,7 @@ public class BookingAggregatorService {
         ReactiveCircuitBreaker cb = circuitBreakerFactory.create("busBookings");
         return cb.run(call, throwable -> {
             log.warn("Bus booking aggregation failed: {}", throwable.toString());
-            return new SourceResult("busBookings", objectMapper.createArrayNode(), "Bus bookings are temporarily unavailable.");
+            return Mono.just(new SourceResult("busBookings", objectMapper.createArrayNode(), "Bus bookings are temporarily unavailable."));
         });
     }
 
@@ -128,7 +128,7 @@ public class BookingAggregatorService {
         ReactiveCircuitBreaker cb = circuitBreakerFactory.create(key);
         return cb.run(call, throwable -> {
             log.warn("{} aggregation failed: {}", key, throwable.toString());
-            return new SourceResult(key, objectMapper.createArrayNode(), label + " are temporarily unavailable.");
+            return Mono.just(new SourceResult(key, objectMapper.createArrayNode(), label + " are temporarily unavailable."));
         });
     }
 }
