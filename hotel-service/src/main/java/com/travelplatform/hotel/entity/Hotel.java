@@ -84,6 +84,23 @@ public class Hotel {
     @OneToMany(mappedBy = "hotel", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Room> rooms = new ArrayList<>();
 
+    /**
+     * Who created this hotel, synced from JWT claims forwarded by the gateway.
+     * Nullable: hotels created before this field existed have no value here
+     * (ROLE_ADMIN was used to create hotels then too, but the identity wasn't
+     * tracked). Not enforced as an edit/delist/manage restriction yet — any
+     * ROLE_ADMIN can still manage any hotel, same as before. This just enables
+     * showing "who's running this property" and scoping a "my hotels" list,
+     * ahead of the full ROLE_PARTNER ownership model described in the V2
+     * roadmap (mirrors TravelPackage.createdBy exactly).
+     */
+    @ManyToOne
+    @JoinColumn(name = "created_by_id", referencedColumnName = "id", nullable = true)
+    private UserRef createdBy;
+
+    public UserRef getCreatedBy() { return createdBy; }
+    public void setCreatedBy(UserRef createdBy) { this.createdBy = createdBy; }
+
     public Hotel() {}
 
     @PrePersist

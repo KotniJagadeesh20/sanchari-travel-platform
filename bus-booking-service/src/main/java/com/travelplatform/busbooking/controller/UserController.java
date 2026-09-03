@@ -138,15 +138,20 @@ public class UserController {
 
     // ─── Cancel ─────────────────────────────────────────────────────────────
 
-    @Operation(summary = "Cancel a booking by booking UUID")
+    @Operation(summary = "Cancel a booking by booking UUID",
+        description = "Only the user who made the booking may cancel it. Ownership is verified against " +
+                      "the X-Authenticated-User-Id header set by the API Gateway.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Cancelled"),
+        @ApiResponse(responseCode = "403", description = "Booking belongs to a different user"),
         @ApiResponse(responseCode = "404", description = "Booking not found")
     })
     @DeleteMapping("/cancelbooking/{id}")
     public ResponseEntity<?> cancelTicket(
-            @Parameter(description = "Booking UUID") @PathVariable UUID id) {
-        boolean cancelled = bookingService.cancelTickets(id);
+            @Parameter(description = "Booking UUID") @PathVariable UUID id,
+            @Parameter(hidden = true) @RequestHeader("X-Authenticated-User-Id") String userIdStr) {
+        UUID requestingUserId = UUID.fromString(userIdStr);
+        boolean cancelled = bookingService.cancelTickets(id, requestingUserId);
         Map<String, Object> response = new HashMap<>();
         response.put("success", cancelled);
         response.put("message", cancelled ? "Booking cancelled" : "Booking not found");

@@ -15,7 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -33,7 +35,7 @@ public class DestinationServiceImpl implements DestinationService {
         destination.setState(request.getState());
         destination.setCountry(request.getCountry());
         destination.setDescription(request.getDescription());
-        destination.setBestTimeToVisit(request.getBestTimeToVisit());
+        destination.setBestMonths(toBestMonthsSet(request.getBestMonths()));
         destination.setAverageBudget(request.getAverageBudget());
         destination.setRecommendedDays(request.getRecommendedDays());
         destination.setCategory(request.getCategory());
@@ -56,7 +58,7 @@ public class DestinationServiceImpl implements DestinationService {
         if (request.getState() != null) destination.setState(request.getState());
         if (request.getCountry() != null) destination.setCountry(request.getCountry());
         if (request.getDescription() != null) destination.setDescription(request.getDescription());
-        if (request.getBestTimeToVisit() != null) destination.setBestTimeToVisit(request.getBestTimeToVisit());
+        if (request.getBestMonths() != null) destination.setBestMonths(toBestMonthsSet(request.getBestMonths()));
         if (request.getAverageBudget() != null) destination.setAverageBudget(request.getAverageBudget());
         if (request.getRecommendedDays() != null) destination.setRecommendedDays(request.getRecommendedDays());
         if (request.getCategory() != null) destination.setCategory(request.getCategory());
@@ -90,18 +92,13 @@ public class DestinationServiceImpl implements DestinationService {
     }
 
     @Override
-    public List<Destination> getByCategory(DestinationCategory category) {
-        return destinationRepo.findByCategoryAndActiveTrue(category);
+    public List<Destination> getAllDestinationsForAdmin() {
+        return destinationRepo.findAll();
     }
 
     @Override
-    public List<Destination> searchByKeyword(String keyword) {
-        return destinationRepo.findByNameContainingIgnoreCaseAndActiveTrue(keyword);
-    }
-
-    @Override
-    public List<Destination> searchByBudget(Double maxBudget) {
-        return destinationRepo.findByAverageBudgetLessThanEqualAndActiveTrue(maxBudget);
+    public List<Destination> search(String keyword, DestinationCategory category, Double maxBudget, Integer visitMonth) {
+        return destinationRepo.search(blankToNull(keyword), category, maxBudget, visitMonth);
     }
 
     @Override
@@ -113,6 +110,14 @@ public class DestinationServiceImpl implements DestinationService {
     public Destination getDestinationById(UUID destinationId) {
         return destinationRepo.findById(destinationId)
                 .orElseThrow(() -> new DestinationNotFoundException(destinationId));
+    }
+
+    private String blankToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s;
+    }
+
+    private Set<Integer> toBestMonthsSet(List<Integer> months) {
+        return months == null ? new HashSet<>() : new HashSet<>(months);
     }
 
     private List<String> orEmpty(List<String> list) {

@@ -22,13 +22,16 @@ public interface DestinationService {
     /** Public browse — only listed destinations. */
     List<Destination> getAllActiveDestinations();
 
-    List<Destination> getByCategory(DestinationCategory category);
+    /** Admin view — every destination including delisted ones. Without this, a delisted destination can never be found again to re-activate it. */
+    List<Destination> getAllDestinationsForAdmin();
 
-    /** Free-text search across destination names, listed only. */
-    List<Destination> searchByKeyword(String keyword);
-
-    /** Listed destinations with averageBudget <= the given ceiling. */
-    List<Destination> searchByBudget(Double maxBudget);
+    /**
+     * Combined search — keyword/category/maxBudget/visitMonth are all
+     * optional and, when more than one is given, applied together (AND), not
+     * just whichever comes first. Pass null for any filter you don't want
+     * applied. visitMonth is 1=January..12=December.
+     */
+    List<Destination> search(String keyword, DestinationCategory category, Double maxBudget, Integer visitMonth);
 
     /** Listed destinations ordered by rating descending. */
     List<Destination> getPopularDestinations();

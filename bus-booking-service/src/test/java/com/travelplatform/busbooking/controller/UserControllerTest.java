@@ -24,6 +24,7 @@ import com.travelplatform.busbooking.entity.Bookingdetails;
 import com.travelplatform.busbooking.entity.Bus;
 import com.travelplatform.busbooking.entity.UserAdmin;
 import com.travelplatform.busbooking.exception.GlobalExceptionHandler;
+import com.travelplatform.busbooking.exception.UnauthorizedBookingActionException;
 import com.travelplatform.busbooking.repository.BusRepository;
 import com.travelplatform.busbooking.service.BookingDetailsService;
 import com.travelplatform.busbooking.service.BusService;
@@ -97,9 +98,11 @@ class UserControllerTest {
     @Test
     void cancelBooking_returns200_whenCancelled() throws Exception {
         UUID bookingId = UUID.randomUUID();
-        when(bookingService.cancelTickets(bookingId)).thenReturn(true);
+        UUID userId = UUID.randomUUID();
+        when(bookingService.cancelTickets(bookingId, userId)).thenReturn(true);
 
-        mockMvc.perform(delete("/api/user/cancelbooking/" + bookingId))
+        mockMvc.perform(delete("/api/user/cancelbooking/" + bookingId)
+                .header("X-Authenticated-User-Id", userId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)));
     }
@@ -107,10 +110,25 @@ class UserControllerTest {
     @Test
     void cancelBooking_returns404_whenNotFound() throws Exception {
         UUID bookingId = UUID.randomUUID();
-        when(bookingService.cancelTickets(bookingId)).thenReturn(false);
+        UUID userId = UUID.randomUUID();
+        when(bookingService.cancelTickets(bookingId, userId)).thenReturn(false);
 
-        mockMvc.perform(delete("/api/user/cancelbooking/" + bookingId))
+        mockMvc.perform(delete("/api/user/cancelbooking/" + bookingId)
+                .header("X-Authenticated-User-Id", userId.toString()))
                 .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    void cancelBooking_returns403_whenBookingBelongsToAnotherUser() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        when(bookingService.cancelTickets(bookingId, userId))
+                .thenThrow(new UnauthorizedBookingActionException("You are not authorized to cancel this booking."));
+
+        mockMvc.perform(delete("/api/user/cancelbooking/" + bookingId)
+                .header("X-Authenticated-User-Id", userId.toString()))
+                .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success", is(false)));
     }
 }

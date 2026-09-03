@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +43,7 @@ class DestinationServiceImplTest {
         createRequest.setCategory(DestinationCategory.BEACH);
         createRequest.setAverageBudget(12000.0);
         createRequest.setRecommendedDays(4);
+        createRequest.setBestMonths(List.of(11, 12, 1, 2));
 
         AttractionRequest attraction = new AttractionRequest();
         attraction.setName("Baga Beach");
@@ -66,6 +68,7 @@ class DestinationServiceImplTest {
             assertTrue(destination.getActive());
             assertEquals(0.0, destination.getManualRating());
             assertEquals(DestinationCategory.BEACH, destination.getCategory());
+            assertEquals(Set.of(11, 12, 1, 2), destination.getBestMonths());
         }
 
         @Test
@@ -202,29 +205,44 @@ class DestinationServiceImplTest {
         }
 
         @Test
-        void getByCategory_delegatesToRepository() {
-            when(destinationRepo.findByCategoryAndActiveTrue(DestinationCategory.BEACH))
-                    .thenReturn(List.of(new Destination()));
-            assertEquals(1, destinationService.getByCategory(DestinationCategory.BEACH).size());
+        void getAllDestinationsForAdmin_returnsEveryDestinationRegardlessOfActiveFlag() {
+            when(destinationRepo.findAll()).thenReturn(List.of(new Destination(), new Destination()));
+            assertEquals(2, destinationService.getAllDestinationsForAdmin().size());
         }
 
         @Test
-        void searchByKeyword_delegatesToRepository() {
-            when(destinationRepo.findByNameContainingIgnoreCaseAndActiveTrue("goa"))
+        void search_delegatesAllFiltersTogetherToTheRepositoryQuery() {
+            when(destinationRepo.search("goa", DestinationCategory.BEACH, 15000.0, 11))
                     .thenReturn(List.of(new Destination()));
-            assertEquals(1, destinationService.searchByKeyword("goa").size());
+
+            List<Destination> results = destinationService.search("goa", DestinationCategory.BEACH, 15000.0, 11);
+
+            assertEquals(1, results.size());
+            verify(destinationRepo).search("goa", DestinationCategory.BEACH, 15000.0, 11);
         }
 
         @Test
-        void searchByBudget_delegatesToRepository() {
-            when(destinationRepo.findByAverageBudgetLessThanEqualAndActiveTrue(15000.0))
+        void search_treatsBlankKeywordAsNoKeywordFilter() {
+            when(destinationRepo.search(null, DestinationCategory.BEACH, null, null))
                     .thenReturn(List.of(new Destination()));
-            assertEquals(1, destinationService.searchByBudget(15000.0).size());
+
+            destinationService.search("   ", DestinationCategory.BEACH, null, null);
+
+            verify(destinationRepo).search(null, DestinationCategory.BEACH, null, null);
+        }
+
+        @Test
+        void search_allowsEveryFilterToBeOmitted() {
+            when(destinationRepo.search(null, null, null, null)).thenReturn(List.of(new Destination()));
+
+            List<Destination> results = destinationService.search(null, null, null, null);
+
+            assertEquals(1, results.size());
         }
 
         @Test
         void getPopularDestinations_delegatesToRepository() {
-            when(destinationRepo.findByActiveTrueOrderByRatingDesc()).thenReturn(List.of(new Destination()));
+            when(destinationRepo.findByActiveTrueOrderByManualRatingDesc()).thenReturn(List.of(new Destination()));
             assertEquals(1, destinationService.getPopularDestinations().size());
         }
 

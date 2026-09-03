@@ -7,6 +7,7 @@ import com.travelplatform.hotel.dto.UpdateHotelRequest;
 import com.travelplatform.hotel.entity.Hotel;
 import com.travelplatform.hotel.entity.HotelAmenity;
 import com.travelplatform.hotel.entity.HotelImage;
+import com.travelplatform.hotel.entity.UserRef;
 import com.travelplatform.hotel.enums.RoomType;
 import com.travelplatform.hotel.exception.HotelNotFoundException;
 import com.travelplatform.hotel.repository.HotelAmenityRepository;
@@ -18,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -29,7 +31,7 @@ public class HotelServiceImpl implements HotelService {
 
     @Override
     @Transactional
-    public Hotel createHotel(CreateHotelRequest request) {
+    public Hotel createHotel(CreateHotelRequest request, UserRef creator) {
         Hotel hotel = new Hotel();
         hotel.setName(request.getName());
         hotel.setDescription(request.getDescription());
@@ -45,6 +47,7 @@ public class HotelServiceImpl implements HotelService {
         hotel.setContactPhone(request.getContactPhone());
         hotel.setCheckInTime(request.getCheckInTime());
         hotel.setCheckOutTime(request.getCheckOutTime());
+        hotel.setCreatedBy(creator);
         return hotelRepo.save(hotel);
     }
 
@@ -114,5 +117,15 @@ public class HotelServiceImpl implements HotelService {
         amenity.setName(request.getName());
         amenity.setIcon(request.getIcon());
         hotelAmenityRepo.save(amenity);
+    }
+
+    @Override
+    public List<Hotel> getAllHotelsForAdmin() {
+        return hotelRepo.findAll();
+    }
+
+    @Override
+    public List<Hotel> getHotelsByCreator(UUID creatorId) {
+        return hotelRepo.findByCreatedById(creatorId);
     }
 }

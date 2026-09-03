@@ -51,35 +51,25 @@ public class DestinationController {
     }
 
     @Operation(summary = "Search destinations",
-            description = "Provide keyword, category, and/or maxBudget. Each filter is applied independently " +
-                    "against the listed (active) destination set.")
+            description = "Provide any combination of keyword, category, maxBudget, and visitMonth (1=Jan..12=Dec) " +
+                    "— all provided filters are applied together (AND), not just whichever one happens to be set.")
     @GetMapping("/search")
     public ResponseEntity<List<DestinationSummaryResponse>> search(
             @Parameter(description = "Partial, case-insensitive name match") @RequestParam(required = false) String keyword,
             @RequestParam(required = false) DestinationCategory category,
-            @Parameter(description = "Maximum average budget") @RequestParam(required = false) Double maxBudget) {
+            @Parameter(description = "Maximum average budget") @RequestParam(required = false) Double maxBudget,
+            @Parameter(description = "1=January..12=December — matches destinations whose bestMonths includes this month")
+            @RequestParam(required = false) Integer visitMonth) {
 
-        List<DestinationSummaryResponse> results;
-        if (keyword != null && !keyword.isBlank()) {
-            results = destinationService.searchByKeyword(keyword)
-                    .stream().map(DestinationSummaryResponse::from).collect(Collectors.toList());
-        } else if (category != null) {
-            results = destinationService.getByCategory(category)
-                    .stream().map(DestinationSummaryResponse::from).collect(Collectors.toList());
-        } else if (maxBudget != null) {
-            results = destinationService.searchByBudget(maxBudget)
-                    .stream().map(DestinationSummaryResponse::from).collect(Collectors.toList());
-        } else {
-            results = destinationService.getAllActiveDestinations()
-                    .stream().map(DestinationSummaryResponse::from).collect(Collectors.toList());
-        }
+        List<DestinationSummaryResponse> results = destinationService.search(keyword, category, maxBudget, visitMonth)
+                .stream().map(DestinationSummaryResponse::from).collect(Collectors.toList());
         return ResponseEntity.ok(results);
     }
 
     @Operation(summary = "Get destinations by category")
     @GetMapping("/category/{category}")
     public ResponseEntity<List<DestinationSummaryResponse>> getByCategory(@PathVariable DestinationCategory category) {
-        List<DestinationSummaryResponse> destinations = destinationService.getByCategory(category)
+        List<DestinationSummaryResponse> destinations = destinationService.search(null, category, null, null)
                 .stream().map(DestinationSummaryResponse::from).collect(Collectors.toList());
         return ResponseEntity.ok(destinations);
     }

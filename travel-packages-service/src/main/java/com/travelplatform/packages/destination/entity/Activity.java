@@ -17,6 +17,8 @@ public class Activity {
     /** Free-text category (e.g. "Water Sports", "Trekking") — same reasoning as Attraction.attractionType. */
     private String category;
 
+    private String imageUrl;
+
     @ManyToOne
     @JoinColumn(name = "destination_id", referencedColumnName = "id", nullable = false)
     private Destination destination;
@@ -31,6 +33,9 @@ public class Activity {
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
     public Destination getDestination() { return destination; }
     public void setDestination(Destination destination) { this.destination = destination; }

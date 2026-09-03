@@ -1,6 +1,8 @@
 package com.travelplatform.packages.destination.controller;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -37,6 +39,16 @@ import com.travelplatform.packages.destination.service.DestinationService;
 public class DestinationAdminController {
 
     @Autowired private DestinationService destinationService;
+
+    @Operation(summary = "List all destinations including delisted ones (admin view)",
+            description = "Without this, a delisted destination can never be found again to re-activate it — " +
+                    "the customer-facing GET /destinations only returns active=true.")
+    @GetMapping
+    public ResponseEntity<List<DestinationDetailResponse>> getAllDestinations() {
+        List<DestinationDetailResponse> destinations = destinationService.getAllDestinationsForAdmin()
+                .stream().map(DestinationDetailResponse::from).collect(Collectors.toList());
+        return ResponseEntity.ok(destinations);
+    }
 
     @Operation(summary = "Create a destination", description = "Includes attractions and activities in one call.")
     @ApiResponses({

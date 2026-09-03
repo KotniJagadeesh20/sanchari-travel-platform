@@ -25,8 +25,18 @@ public interface BusRepository extends JpaRepository<Bus, UUID> {
     @Transactional
     void deleteByBusno(@Param("busNo") String busNo);
 
-	//@Query("SELECT b FROM Bus b WHERE b.source = ?1 AND b.destination = ?2 AND b.date = ?3")
-	List<Bus> findBySourceAndDestinationAndDate(String source, String destination, LocalDate date);
+	/**
+	 * Case/whitespace-insensitive match on source and destination — a caller
+	 * passing " Goa " or "GOA" matches a stored "Goa" the same as an exact
+	 * match would. Normalizes both sides with TRIM+LOWER rather than relying
+	 * on callers to sanitize input. Backs GET /api/user/searchbusses/{source}/{destination}/{date}.
+	 */
+	@Query("SELECT b FROM Bus b WHERE LOWER(TRIM(b.source)) = LOWER(TRIM(:source)) " +
+			"AND LOWER(TRIM(b.destination)) = LOWER(TRIM(:destination)) " +
+			"AND b.date = :date")
+	List<Bus> findBySourceAndDestinationAndDate(@Param("source") String source,
+			@Param("destination") String destination,
+			@Param("date") LocalDate date);
 	
 	
 	

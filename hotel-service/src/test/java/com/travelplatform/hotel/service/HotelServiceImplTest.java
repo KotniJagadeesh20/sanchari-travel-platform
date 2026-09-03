@@ -14,12 +14,17 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.travelplatform.hotel.dto.CreateHotelRequest;
 import com.travelplatform.hotel.dto.UpdateHotelRequest;
 import com.travelplatform.hotel.entity.Hotel;
+import com.travelplatform.hotel.entity.UserRef;
 import com.travelplatform.hotel.exception.HotelNotFoundException;
 import com.travelplatform.hotel.repository.HotelAmenityRepository;
 import com.travelplatform.hotel.repository.HotelImageRepository;
 import com.travelplatform.hotel.repository.HotelRepository;
+
+import java.util.Arrays;
+import java.util.List;
 
 @ExtendWith(MockitoExtension.class)
 class HotelServiceImplTest {
@@ -70,5 +75,46 @@ class HotelServiceImplTest {
 
         assertEquals("New Name", updated.getName());
         assertEquals("Old City", updated.getCity(), "Null fields on the request must not overwrite existing values");
+    }
+
+    @Test
+    void createHotel_setsCreatedBy() {
+        CreateHotelRequest request = new CreateHotelRequest();
+        request.setName("Test Hotel");
+        request.setDestinationId(UUID.randomUUID());
+        request.setAddress("123 Main St");
+        request.setCity("Hyderabad");
+        request.setCountry("India");
+        request.setStarRating(4);
+
+        UserRef creator = new UserRef(UUID.randomUUID(), "owner@example.com", "Owner");
+        when(hotelRepo.save(any(Hotel.class))).thenAnswer(i -> i.getArgument(0));
+
+        Hotel created = hotelService.createHotel(request, creator);
+
+        assertEquals(creator, created.getCreatedBy());
+    }
+
+    @Test
+    void getAllHotelsForAdmin_returnsEveryHotelRegardlessOfActiveFlag() {
+        Hotel active = new Hotel();
+        Hotel delisted = new Hotel();
+        when(hotelRepo.findAll()).thenReturn(Arrays.asList(active, delisted));
+
+        List<Hotel> result = hotelService.getAllHotelsForAdmin();
+
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void getHotelsByCreator_delegatesToRepositoryQuery() {
+        UUID creatorId = UUID.randomUUID();
+        Hotel hotel = new Hotel();
+        when(hotelRepo.findByCreatedById(creatorId)).thenReturn(List.of(hotel));
+
+        List<Hotel> result = hotelService.getHotelsByCreator(creatorId);
+
+        assertEquals(1, result.size());
+        verify(hotelRepo).findByCreatedById(creatorId);
     }
 }

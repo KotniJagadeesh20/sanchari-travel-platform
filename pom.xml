@@ -19,6 +19,7 @@
         <module>travel-packages-service</module>
         <module>hotel-service</module>
         <module>notification-service</module>
+        <module>travel-agent-service</module>
     </modules>
 
     <properties>

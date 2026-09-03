@@ -27,6 +27,16 @@ public interface PackageService {
     /** Find all active packages linked to a specific destination UUID. */
     List<TravelPackage> findByDestination(UUID destinationId);
 
+    /**
+     * Combined search — destinationId/keyword/maxBudget/minDurationDays/
+     * maxDurationDays are all optional and, when more than one is given,
+     * applied together (AND), not just whichever comes first. Pass null for
+     * any filter you don't want applied. keyword matches title or description.
+     * Mirrors DestinationService.search.
+     */
+    List<TravelPackage> search(UUID destinationId, String keyword, Double maxBudget,
+                                Integer minDurationDays, Integer maxDurationDays);
+
     /** Admin view — every package including delisted/draft ones. */
     List<TravelPackage> getAllPackagesForAdmin();
 

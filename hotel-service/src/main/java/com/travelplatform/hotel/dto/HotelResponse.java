@@ -33,6 +33,9 @@ public class HotelResponse {
     private List<String> imageUrls;
     private List<AmenityResponse> amenities;
     private List<RoomResponse> rooms;
+    private UUID createdById;
+    private String createdByName;
+    private String createdByEmail;
 
     public static HotelResponse from(Hotel hotel) {
         HotelResponse r = new HotelResponse();
@@ -60,6 +63,11 @@ public class HotelResponse {
         r.amenities = hotel.getAmenities().stream()
                 .map(a -> new AmenityResponse(a.getId(), a.getName(), a.getIcon()))
                 .collect(Collectors.toList());
+        if (hotel.getCreatedBy() != null) {
+            r.createdById = hotel.getCreatedBy().getId();
+            r.createdByName = hotel.getCreatedBy().getName();
+            r.createdByEmail = hotel.getCreatedBy().getEmail();
+        }
         return r;
     }
 
@@ -93,6 +101,9 @@ public class HotelResponse {
     public List<String> getImageUrls() { return imageUrls; }
     public List<AmenityResponse> getAmenities() { return amenities; }
     public List<RoomResponse> getRooms() { return rooms; }
+    public UUID getCreatedById() { return createdById; }
+    public String getCreatedByName() { return createdByName; }
+    public String getCreatedByEmail() { return createdByEmail; }
 
     public static class AmenityResponse {
         private UUID id;

@@ -23,6 +23,20 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
         </dependency>
+        <!-- Client-side load balancing for our own outbound WebClient calls in the
+             booking aggregator (lb://service-name resolution) — Gateway's routes
+             already get this transitively via spring-cloud-starter-gateway, but we
+             declare it explicitly since we also use @LoadBalanced ourselves. -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+        </dependency>
+        <!-- Resilience4j timeouts + circuit breakers for the booking aggregator's
+             downstream calls, via Spring Cloud's reactive integration. -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
+        </dependency>
         <!-- JWT validation at the gateway -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
@@ -51,6 +65,11 @@
         <dependency><groupId>io.opentelemetry</groupId><artifactId>opentelemetry-exporter-otlp</artifactId></dependency>
         <!-- Centralized logging: JSON logs shipped to Logstash -->
         <dependency><groupId>net.logstash.logback</groupId><artifactId>logstash-logback-encoder</artifactId><version>${logstash-logback-encoder.version}</version></dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

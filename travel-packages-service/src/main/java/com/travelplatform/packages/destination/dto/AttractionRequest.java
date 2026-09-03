@@ -16,6 +16,9 @@ public class AttractionRequest {
     @Schema(example = "Beach")
     private String attractionType;
 
+    @Schema(example = "https://example.com/baga-beach.jpg")
+    private String imageUrl;
+
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
@@ -24,4 +27,7 @@ public class AttractionRequest {
 
     public String getAttractionType() { return attractionType; }
     public void setAttractionType(String attractionType) { this.attractionType = attractionType; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 }

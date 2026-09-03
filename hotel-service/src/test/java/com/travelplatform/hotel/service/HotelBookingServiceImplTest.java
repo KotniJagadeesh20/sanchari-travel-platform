@@ -142,4 +142,20 @@ class HotelBookingServiceImplTest {
             verify(roomRepo, never()).save(any());
         }
     }
+
+    @Nested
+    class GetBookingsByHotel {
+
+        @Test
+        void delegatesToRepositoryQuery() {
+            UUID hotelId = UUID.randomUUID();
+            HotelBooking booking = new HotelBooking();
+            when(bookingRepo.findByHotelIdOrderByBookingDateDesc(hotelId)).thenReturn(java.util.List.of(booking));
+
+            java.util.List<HotelBooking> result = bookingService.getBookingsByHotel(hotelId);
+
+            assertEquals(1, result.size());
+            verify(bookingRepo).findByHotelIdOrderByBookingDateDesc(hotelId);
+        }
+    }
 }

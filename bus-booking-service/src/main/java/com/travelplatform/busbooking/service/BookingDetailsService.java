@@ -11,6 +11,11 @@ public interface BookingDetailsService {
 	
 	List<Object>  getBookingDetails(UUID userid);
 	
-	Boolean cancelTickets(UUID id);
+	/**
+	 * Cancels a booking, but only if it belongs to requestingUserId.
+	 * Returns false if no booking with this id exists.
+	 * Throws UnauthorizedBookingActionException if the booking exists but belongs to someone else.
+	 */
+	Boolean cancelTickets(UUID id, UUID requestingUserId);
 
 }

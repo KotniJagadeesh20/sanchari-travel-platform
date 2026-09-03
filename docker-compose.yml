@@ -360,6 +360,49 @@ services:
     networks:
       - travel-net
 
+  # ── AI Travel Agent ──────────────────────────────────────────────────────
+  # No database of its own — it's a pure orchestrator calling the domain
+  # services above via Eureka. Needs ANTHROPIC_API_KEY set in the environment
+  # (or a .env file) before starting; the app fails fast at startup if it's
+  # missing.
+  travel-agent-service:
+    build:
+      context: .
+      dockerfile: travel-agent-service/Dockerfile
+    container_name: travel-agent-service
+    environment:
+      EUREKA_URI: http://service-registry:8761/eureka/
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-6}
+      OTLP_ENDPOINT: http://zipkin:4318/v1/traces
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+    ports:
+      - "8088:8088"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      travel-packages-service:
+        condition: service_healthy
+      hotel-service:
+        condition: service_healthy
+      bus-booking-service:
+        condition: service_healthy
+      ride-share-service:
+        condition: service_healthy
+      zipkin:
+        condition: service_started
+      logstash:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8088/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - travel-net
+
   # ── API Gateway ──────────────────────────────────────────────────────────
   # Starts last — waits on every domain service being healthy so the first
   # requests it routes don't hit a service that's still booting.
@@ -390,6 +433,8 @@ services:
       hotel-service:
         condition: service_healthy
       notification-service:
+        condition: service_healthy
+      travel-agent-service:
         condition: service_healthy
     networks:
       - travel-net

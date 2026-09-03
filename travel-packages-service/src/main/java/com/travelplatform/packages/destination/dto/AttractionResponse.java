@@ -11,6 +11,7 @@ public class AttractionResponse {
     private String name;
     private String description;
     private String attractionType;
+    private String imageUrl;
 
     public static AttractionResponse from(Attraction a) {
         AttractionResponse r = new AttractionResponse();
@@ -18,6 +19,7 @@ public class AttractionResponse {
         r.name = a.getName();
         r.description = a.getDescription();
         r.attractionType = a.getAttractionType();
+        r.imageUrl = a.getImageUrl();
         return r;
     }
 
@@ -25,4 +27,5 @@ public class AttractionResponse {
     public String getName() { return name; }
     public String getDescription() { return description; }
     public String getAttractionType() { return attractionType; }
+    public String getImageUrl() { return imageUrl; }
 }
