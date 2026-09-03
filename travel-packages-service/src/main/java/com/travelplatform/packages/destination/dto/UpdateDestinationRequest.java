@@ -17,7 +17,7 @@ public class UpdateDestinationRequest {
     private String state;
     private String country;
     private String description;
-    private String bestTimeToVisit;
+    private List<Integer> bestMonths;
 
     @PositiveOrZero(message = "Average budget cannot be negative")
     private Double averageBudget;
@@ -53,8 +53,8 @@ public class UpdateDestinationRequest {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public String getBestTimeToVisit() { return bestTimeToVisit; }
-    public void setBestTimeToVisit(String bestTimeToVisit) { this.bestTimeToVisit = bestTimeToVisit; }
+    public List<Integer> getBestMonths() { return bestMonths; }
+    public void setBestMonths(List<Integer> bestMonths) { this.bestMonths = bestMonths; }
 
     public Double getAverageBudget() { return averageBudget; }
     public void setAverageBudget(Double averageBudget) { this.averageBudget = averageBudget; }

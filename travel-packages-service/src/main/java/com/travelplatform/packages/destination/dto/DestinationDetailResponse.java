@@ -16,7 +16,7 @@ public class DestinationDetailResponse {
     private String state;
     private String country;
     private String description;
-    private String bestTimeToVisit;
+    private List<Integer> bestMonths;
     private Double averageBudget;
     private Integer recommendedDays;
     private DestinationCategory category;
@@ -33,7 +33,7 @@ public class DestinationDetailResponse {
         r.state = d.getState();
         r.country = d.getCountry();
         r.description = d.getDescription();
-        r.bestTimeToVisit = d.getBestTimeToVisit();
+        r.bestMonths = d.getBestMonths() == null ? List.of() : List.copyOf(d.getBestMonths());
         r.averageBudget = d.getAverageBudget();
         r.recommendedDays = d.getRecommendedDays();
         r.category = d.getCategory();
@@ -50,7 +50,7 @@ public class DestinationDetailResponse {
     public String getState() { return state; }
     public String getCountry() { return country; }
     public String getDescription() { return description; }
-    public String getBestTimeToVisit() { return bestTimeToVisit; }
+    public List<Integer> getBestMonths() { return bestMonths; }
     public Double getAverageBudget() { return averageBudget; }
     public Integer getRecommendedDays() { return recommendedDays; }
     public DestinationCategory getCategory() { return category; }

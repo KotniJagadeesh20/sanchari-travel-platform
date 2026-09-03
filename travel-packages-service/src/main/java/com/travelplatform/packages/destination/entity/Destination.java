@@ -5,7 +5,9 @@ import com.travelplatform.packages.destination.enums.DestinationCategory;
 import jakarta.persistence.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -27,7 +29,17 @@ public class Destination {
     @Column(length = 5000)
     private String description;
 
-    private String bestTimeToVisit;
+    /**
+     * Calendar months (1=January … 12=December) this destination is good to
+     * visit. A proper @ElementCollection (its own join table) rather than a
+     * free-text field like "Nov-Feb" specifically so it's queryable —
+     * "destinations good to visit in March" is `3 MEMBER OF d.bestMonths`,
+     * not string parsing. Empty/null means not specified.
+     */
+    @ElementCollection
+    @CollectionTable(name = "destination_best_months", joinColumns = @JoinColumn(name = "destination_id"))
+    @Column(name = "month")
+    private Set<Integer> bestMonths = new HashSet<>();
 
     private Double averageBudget;
 
@@ -78,8 +90,8 @@ public class Destination {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public String getBestTimeToVisit() { return bestTimeToVisit; }
-    public void setBestTimeToVisit(String bestTimeToVisit) { this.bestTimeToVisit = bestTimeToVisit; }
+    public Set<Integer> getBestMonths() { return bestMonths; }
+    public void setBestMonths(Set<Integer> bestMonths) { this.bestMonths = bestMonths; }
 
     public Double getAverageBudget() { return averageBudget; }
     public void setAverageBudget(Double averageBudget) { this.averageBudget = averageBudget; }

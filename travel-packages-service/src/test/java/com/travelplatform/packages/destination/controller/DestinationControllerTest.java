@@ -105,42 +105,33 @@ class DestinationControllerTest {
     class Search {
 
         @Test
-        void search_byKeyword_callsKeywordSearch() throws Exception {
-            when(destinationService.searchByKeyword("goa")).thenReturn(List.of(buildDestination(UUID.randomUUID())));
+        void search_passesAllProvidedFiltersTogetherToTheService() throws Exception {
+            when(destinationService.search("goa", DestinationCategory.BEACH, 15000.0, 11))
+                    .thenReturn(List.of(buildDestination(UUID.randomUUID())));
 
-            mockMvc.perform(get("/destinations/search").param("keyword", "goa"))
+            mockMvc.perform(get("/destinations/search")
+                    .param("keyword", "goa").param("category", "BEACH")
+                    .param("maxBudget", "15000.0").param("visitMonth", "11"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].name", is("Goa")));
 
-            verify(destinationService).searchByKeyword("goa");
-            verify(destinationService, never()).getByCategory(any());
+            verify(destinationService).search("goa", DestinationCategory.BEACH, 15000.0, 11);
         }
 
         @Test
-        void search_byCategory_whenNoKeyword() throws Exception {
-            when(destinationService.getByCategory(DestinationCategory.BEACH))
+        void search_byKeywordOnly() throws Exception {
+            when(destinationService.search("goa", null, null, null))
                     .thenReturn(List.of(buildDestination(UUID.randomUUID())));
 
-            mockMvc.perform(get("/destinations/search").param("category", "BEACH"))
+            mockMvc.perform(get("/destinations/search").param("keyword", "goa"))
                     .andExpect(status().isOk());
 
-            verify(destinationService).getByCategory(DestinationCategory.BEACH);
-        }
-
-        @Test
-        void search_byBudget_whenNoKeywordOrCategory() throws Exception {
-            when(destinationService.searchByBudget(15000.0))
-                    .thenReturn(List.of(buildDestination(UUID.randomUUID())));
-
-            mockMvc.perform(get("/destinations/search").param("maxBudget", "15000.0"))
-                    .andExpect(status().isOk());
-
-            verify(destinationService).searchByBudget(15000.0);
+            verify(destinationService).search("goa", null, null, null);
         }
 
         @Test
         void getByCategory_pathVariant_returns200() throws Exception {
-            when(destinationService.getByCategory(DestinationCategory.HILL_STATION))
+            when(destinationService.search(null, DestinationCategory.HILL_STATION, null, null))
                     .thenReturn(List.of(buildDestination(UUID.randomUUID())));
 
             mockMvc.perform(get("/destinations/category/HILL_STATION"))

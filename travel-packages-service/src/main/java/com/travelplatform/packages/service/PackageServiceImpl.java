@@ -113,6 +113,16 @@ public class PackageServiceImpl implements PackageService {
     }
 
     @Override
+    public List<TravelPackage> search(UUID destinationId, String keyword, Double maxBudget,
+                                       Integer minDurationDays, Integer maxDurationDays) {
+        return packageRepo.search(destinationId, blankToNull(keyword), maxBudget, minDurationDays, maxDurationDays);
+    }
+
+    private String blankToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s;
+    }
+
+    @Override
     public List<TravelPackage> getAllPackagesForAdmin() {
         return packageRepo.findAll();
     }

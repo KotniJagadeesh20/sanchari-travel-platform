@@ -123,6 +123,11 @@ public class HotelBookingServiceImpl implements HotelBookingService {
     }
 
     @Override
+    public List<HotelBooking> getBookingsByHotel(UUID hotelId) {
+        return bookingRepo.findByHotelIdOrderByBookingDateDesc(hotelId);
+    }
+
+    @Override
     public HotelBooking getBookingById(UUID bookingId) {
         return bookingRepo.findById(bookingId).orElseThrow(() -> new BookingNotFoundException(bookingId));
     }

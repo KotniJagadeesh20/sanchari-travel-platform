@@ -20,6 +20,8 @@ public class Attraction {
     /** Free-text type label (e.g. "Beach", "Waterfall", "Temple") — not an enum since attraction types vary too widely to enumerate up front. */
     private String attractionType;
 
+    private String imageUrl;
+
     @ManyToOne
     @JoinColumn(name = "destination_id", referencedColumnName = "id", nullable = false)
     private Destination destination;
@@ -37,6 +39,9 @@ public class Attraction {
 
     public String getAttractionType() { return attractionType; }
     public void setAttractionType(String attractionType) { this.attractionType = attractionType; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
     public Destination getDestination() { return destination; }
     public void setDestination(Destination destination) { this.destination = destination; }

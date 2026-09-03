@@ -20,5 +20,8 @@ public interface HotelBookingService {
 
     List<HotelBooking> getBookingsByUser(UUID userId);
 
+    /** Admin/creator view of every booking for one hotel, across all its rooms. */
+    List<HotelBooking> getBookingsByHotel(UUID hotelId);
+
     HotelBooking getBookingById(UUID bookingId);
 }

@@ -51,9 +51,13 @@ public class BookingdetailsServiceImpl implements BookingDetailsService {
 	}
 
 	@Override
-	public Boolean cancelTickets(UUID id) {
+	public Boolean cancelTickets(UUID id, UUID requestingUserId) {
 		Bookingdetails ticket= bookRepo.findByid(id);
 		if(ticket!=null) {
+			  if (ticket.getUser() == null || !ticket.getUser().getId().equals(requestingUserId)) {
+			      throw new com.travelplatform.busbooking.exception.UnauthorizedBookingActionException(
+			              "You are not authorized to cancel this booking.");
+			  }
 			  try {
 			        bookRepo.deleteByid(id);
 

@@ -23,6 +23,9 @@ import com.travelplatform.auth.enums.Role;
 import com.travelplatform.auth.exception.GlobalExceptionHandler;
 import com.travelplatform.auth.repository.UserAdminRepository;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.MediaType;
+
 @ExtendWith(MockitoExtension.class)
 class UserProfileControllerTest {
 
@@ -49,6 +52,38 @@ class UserProfileControllerTest {
         user.setAge(29);
         user.setRole(Role.ROLE_USER);
         user.setPassword("encoded-password-never-returned");
+    }
+
+    @Nested
+    class GetAllUsersForAdmin {
+
+        @Test
+        void returns200_withEveryUser() throws Exception {
+            UserAdmin second = new UserAdmin();
+            second.setId(UUID.randomUUID());
+            second.setName("Second User");
+            second.setEmail("second@example.com");
+            second.setPhone("9123456780");
+            second.setGender("Male");
+            second.setAge(40);
+            second.setRole(Role.ROLE_ADMIN);
+
+            when(userAdminRepo.findAll()).thenReturn(java.util.List.of(user, second));
+
+            mockMvc.perform(get("/auth/users/admin"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()", is(2)))
+                    .andExpect(jsonPath("$[1].role", is("ROLE_ADMIN")));
+        }
+
+        @Test
+        void neverExposesPassword() throws Exception {
+            when(userAdminRepo.findAll()).thenReturn(java.util.List.of(user));
+
+            mockMvc.perform(get("/auth/users/admin"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].password").doesNotExist());
+        }
     }
 
     @Nested
@@ -115,6 +150,80 @@ class UserProfileControllerTest {
             mockMvc.perform(get("/auth/users/by-email/missing@example.com"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.success", is(false)));
+        }
+    }
+
+    @Nested
+    class UpdateMyProfile {
+
+        private final ObjectMapper objectMapper = new ObjectMapper();
+
+        @Test
+        void appliesOnlyProvidedFields_leavesOthersUnchanged() throws Exception {
+            when(userAdminRepo.findById(userId)).thenReturn(Optional.of(user));
+            when(userAdminRepo.save(any(UserAdmin.class))).thenAnswer(i -> i.getArgument(0));
+
+            mockMvc.perform(put("/auth/users/me")
+                    .header("X-Authenticated-User-Id", userId.toString())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(java.util.Map.of("name", "Asha K. Reddy"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.name", is("Asha K. Reddy")))
+                    .andExpect(jsonPath("$.phone", is("9876543210"))); // unchanged
+        }
+
+        @Test
+        void neverAcceptsEmailOrPassword_fieldsSimplyDontExistOnTheRequestDto() throws Exception {
+            when(userAdminRepo.findById(userId)).thenReturn(Optional.of(user));
+            when(userAdminRepo.save(any(UserAdmin.class))).thenAnswer(i -> i.getArgument(0));
+
+            mockMvc.perform(put("/auth/users/me")
+                    .header("X-Authenticated-User-Id", userId.toString())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"email\":\"hacked@example.com\",\"password\":\"newpass\",\"name\":\"Asha K. Reddy\"}"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.email", is("asha@example.com"))); // unchanged — email isn't a bindable field
+        }
+
+        @Test
+        void alwaysUpdatesTheCallerFromTheHeader_neverATargetInTheBody() throws Exception {
+            UUID someoneElsesId = UUID.randomUUID();
+            when(userAdminRepo.findById(userId)).thenReturn(Optional.of(user));
+            when(userAdminRepo.save(any(UserAdmin.class))).thenAnswer(i -> i.getArgument(0));
+
+            mockMvc.perform(put("/auth/users/me")
+                    .header("X-Authenticated-User-Id", userId.toString())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(java.util.Map.of("name", "Still Me"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id", is(userId.toString())));
+
+            verify(userAdminRepo, never()).findById(someoneElsesId);
+        }
+
+        @Test
+        void returns404_whenAuthenticatedUserSomehowNoLongerExists() throws Exception {
+            UUID missingId = UUID.randomUUID();
+
+            mockMvc.perform(put("/auth/users/me")
+                    .header("X-Authenticated-User-Id", missingId.toString())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{}"))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.success", is(false)));
+        }
+
+        @Test
+        void neverExposesPassword_onUpdateResponse() throws Exception {
+            when(userAdminRepo.findById(userId)).thenReturn(Optional.of(user));
+            when(userAdminRepo.save(any(UserAdmin.class))).thenAnswer(i -> i.getArgument(0));
+
+            mockMvc.perform(put("/auth/users/me")
+                    .header("X-Authenticated-User-Id", userId.toString())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{}"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.password").doesNotExist());
         }
     }
 }

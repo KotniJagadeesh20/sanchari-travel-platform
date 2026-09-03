@@ -50,6 +50,23 @@ public class PackageController {
         return ResponseEntity.ok(packages);
     }
 
+    @Operation(summary = "Search packages",
+            description = "Provide any combination of destinationId, keyword, maxBudget, minDurationDays, and " +
+                    "maxDurationDays — all provided filters are applied together (AND), not just whichever one " +
+                    "happens to be set. keyword matches against title or description.")
+    @GetMapping("/search")
+    public ResponseEntity<List<PackageResponse>> search(
+            @RequestParam(required = false) UUID destinationId,
+            @Parameter(description = "Partial, case-insensitive match against title or description") @RequestParam(required = false) String keyword,
+            @Parameter(description = "Maximum package price") @RequestParam(required = false) Double maxBudget,
+            @RequestParam(required = false) Integer minDurationDays,
+            @RequestParam(required = false) Integer maxDurationDays) {
+
+        List<PackageResponse> results = packageService.search(destinationId, keyword, maxBudget, minDurationDays, maxDurationDays)
+                .stream().map(PackageResponse::from).collect(Collectors.toList());
+        return ResponseEntity.ok(results);
+    }
+
     @Operation(
         summary = "Find packages by destination",
         description = "Returns all active packages linked to the given destination UUID. " +

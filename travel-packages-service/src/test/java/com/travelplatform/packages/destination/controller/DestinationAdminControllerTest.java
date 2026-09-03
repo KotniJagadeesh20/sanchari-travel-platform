@@ -67,6 +67,23 @@ class DestinationAdminControllerTest {
     }
 
     @Nested
+    class GetAllDestinationsForAdmin {
+
+        @Test
+        void returns200_includingDelistedDestinations() throws Exception {
+            Destination active = buildDestination(UUID.randomUUID());
+            Destination delisted = buildDestination(UUID.randomUUID());
+            delisted.setActive(false);
+            when(destinationService.getAllDestinationsForAdmin()).thenReturn(java.util.List.of(active, delisted));
+
+            mockMvc.perform(get("/destinations/admin"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()", is(2)))
+                    .andExpect(jsonPath("$[1].active", is(false)));
+        }
+    }
+
+    @Nested
     class CreateDestination {
 
         @Test

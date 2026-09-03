@@ -24,8 +24,8 @@ public class CreateDestinationRequest {
     @Schema(example = "Popular beach destination on India's west coast.")
     private String description;
 
-    @Schema(example = "Nov-Feb")
-    private String bestTimeToVisit;
+    @Schema(description = "Months this destination is best visited, 1=Jan..12=Dec", example = "[11,12,1,2]")
+    private List<Integer> bestMonths;
 
     @PositiveOrZero(message = "Average budget cannot be negative")
     @Schema(example = "12000.0")
@@ -65,8 +65,8 @@ public class CreateDestinationRequest {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public String getBestTimeToVisit() { return bestTimeToVisit; }
-    public void setBestTimeToVisit(String bestTimeToVisit) { this.bestTimeToVisit = bestTimeToVisit; }
+    public List<Integer> getBestMonths() { return bestMonths; }
+    public void setBestMonths(List<Integer> bestMonths) { this.bestMonths = bestMonths; }
 
     public Double getAverageBudget() { return averageBudget; }
     public void setAverageBudget(Double averageBudget) { this.averageBudget = averageBudget; }
