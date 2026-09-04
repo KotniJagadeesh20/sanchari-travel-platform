@@ -24,7 +24,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.travelplatform.auth.dto.CustomDetailsImpl;
+import com.travelplatform.auth.service.CustomDetailsImpl;
 import com.travelplatform.auth.config.JwtProvider;
 import com.travelplatform.auth.dto.LoginRequest;
 import com.travelplatform.auth.dto.RefreshTokenRequest;

@@ -10,7 +10,7 @@ COPY ride-share-service/pom.xml ride-share-service/pom.xml
 COPY travel-packages-service/pom.xml travel-packages-service/pom.xml
 COPY hotel-service/pom.xml hotel-service/pom.xml
 COPY notification-service/pom.xml notification-service/pom.xml
-
+COPY travel-agent-service/pom.xml travel-agent-service/pom.xml
 COPY bus-booking-service/src bus-booking-service/src
 
 RUN mvn -pl bus-booking-service -am package -DskipTests -q

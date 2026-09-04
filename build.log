@@ -1,0 +1,583 @@
+--progress is a global compose flag, better use `docker compose --progress xx build ...
+time="2026-09-03T12:04:38Z" level=warning msg="The \"ANTHROPIC_API_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-09-03T12:04:38Z" level=warning msg="/workspaces/sanchari-travel-platform/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+#1 [internal] load local bake definitions
+#1 reading from stdin 4.89kB done
+#1 DONE 0.0s
+
+#2 [travel-agent-service internal] load build definition from Dockerfile
+#2 DONE 0.0s
+
+#2 [travel-agent-service internal] load build definition from Dockerfile
+#2 transferring dockerfile: 1.07kB 0.0s done
+#2 DONE 0.0s
+
+#3 [auth-service internal] load build definition from Dockerfile
+#3 transferring dockerfile: 1.03kB done
+#3 DONE 0.1s
+
+#4 [auth] library/maven:pull token for registry-1.docker.io
+#4 DONE 0.0s
+
+#5 [auth] library/eclipse-temurin:pull token for registry-1.docker.io
+#5 DONE 0.0s
+
+#6 [bus-booking-service internal] load build definition from Dockerfile
+#6 transferring dockerfile: 1.06kB done
+#6 DONE 0.1s
+
+#7 [api-gateway internal] load build definition from Dockerfile
+#7 transferring dockerfile: 1.03kB done
+#7 DONE 0.1s
+
+#8 [hotel-service internal] load build definition from Dockerfile
+#8 transferring dockerfile: 1.04kB done
+#8 DONE 0.1s
+
+#9 [ride-share-service internal] load build definition from Dockerfile
+#9 transferring dockerfile: 1.06kB done
+#9 DONE 0.2s
+
+#10 [travel-packages-service internal] load build definition from Dockerfile
+#10 transferring dockerfile: 1.08kB 0.0s done
+#10 DONE 0.2s
+
+#11 [service-registry internal] load build definition from Dockerfile
+#11 transferring dockerfile: 2.01kB 0.0s done
+#11 DONE 0.2s
+
+#12 [notification-service internal] load build definition from Dockerfile
+#12 transferring dockerfile: 1.02kB done
+#12 DONE 0.2s
+
+#13 [travel-packages-service internal] load metadata for docker.io/library/eclipse-temurin:17-jre-alpine
+#13 DONE 1.1s
+
+#14 [ride-share-service internal] load metadata for docker.io/library/maven:3.9-eclipse-temurin-17
+#14 DONE 1.1s
+
+#15 [notification-service internal] load .dockerignore
+#15 transferring context: 248B done
+#15 DONE 0.0s
+
+#16 [service-registry internal] load build context
+#16 DONE 0.0s
+
+#17 [travel-packages-service internal] load build context
+#17 DONE 0.0s
+
+#18 [api-gateway internal] load build context
+#18 DONE 0.0s
+
+#19 [hotel-service internal] load build context
+#19 DONE 0.0s
+
+#20 [ride-share-service internal] load build context
+#20 DONE 0.0s
+
+#21 [bus-booking-service internal] load build context
+#21 DONE 0.0s
+
+#22 [notification-service internal] load build context
+#22 DONE 0.0s
+
+#23 [auth-service internal] load build context
+#23 DONE 0.0s
+
+#24 [travel-agent-service internal] load build context
+#24 DONE 0.0s
+
+#25 [travel-agent-service stage-1 1/5] FROM docker.io/library/eclipse-temurin:17-jre-alpine@sha256:27cc0849148c0fd32ee8e95988917becf9bc96a3182a24f99d9763aa8e90f8cb
+#25 resolve docker.io/library/eclipse-temurin:17-jre-alpine@sha256:27cc0849148c0fd32ee8e95988917becf9bc96a3182a24f99d9763aa8e90f8cb
+#25 resolve docker.io/library/eclipse-temurin:17-jre-alpine@sha256:27cc0849148c0fd32ee8e95988917becf9bc96a3182a24f99d9763aa8e90f8cb 0.1s done
+#25 DONE 0.1s
+
+#26 [bus-booking-service build  1/14] FROM docker.io/library/maven:3.9-eclipse-temurin-17@sha256:a8746f15d5bb26b5b8bacb056cc76211553850f4c71d16aff845cfa004cbc197
+#26 resolve docker.io/library/maven:3.9-eclipse-temurin-17@sha256:a8746f15d5bb26b5b8bacb056cc76211553850f4c71d16aff845cfa004cbc197 0.1s done
+#26 DONE 0.1s
+
+#23 [auth-service internal] load build context
+#23 ...
+
+#24 [travel-agent-service internal] load build context
+#24 transferring context: 7.16kB 0.1s done
+#24 DONE 0.1s
+
+#27 [travel-agent-service build  7/14] COPY bus-booking-service/pom.xml bus-booking-service/pom.xml
+#27 CACHED
+
+#28 [travel-agent-service build 10/14] COPY hotel-service/pom.xml hotel-service/pom.xml
+#28 CACHED
+
+#29 [travel-agent-service build  8/14] COPY ride-share-service/pom.xml ride-share-service/pom.xml
+#29 CACHED
+
+#30 [travel-agent-service build 12/14] COPY travel-agent-service/pom.xml travel-agent-service/pom.xml
+#30 CACHED
+
+#31 [travel-agent-service build  2/14] WORKDIR /workspace
+#31 CACHED
+
+#32 [travel-agent-service build  4/14] COPY service-registry/pom.xml service-registry/pom.xml
+#32 CACHED
+
+#33 [travel-agent-service build  9/14] COPY travel-packages-service/pom.xml travel-packages-service/pom.xml
+#33 CACHED
+
+#34 [travel-agent-service build  3/14] COPY pom.xml .
+#34 CACHED
+
+#35 [travel-agent-service build  6/14] COPY auth-service/pom.xml auth-service/pom.xml
+#35 CACHED
+
+#36 [travel-agent-service build  5/14] COPY api-gateway/pom.xml api-gateway/pom.xml
+#36 CACHED
+
+#37 [travel-agent-service build 11/14] COPY notification-service/pom.xml notification-service/pom.xml
+#37 CACHED
+
+#38 [travel-agent-service build 13/14] COPY travel-agent-service/src travel-agent-service/src
+#38 CACHED
+
+#23 [auth-service internal] load build context
+#23 transferring context: 130.22kB 0.2s done
+#23 DONE 0.3s
+
+#16 [service-registry internal] load build context
+#16 transferring context: 5.58kB 0.1s done
+#16 DONE 0.2s
+
+#21 [bus-booking-service internal] load build context
+#21 transferring context: 97.48kB 0.2s done
+#21 DONE 0.3s
+
+#18 [api-gateway internal] load build context
+#18 transferring context: 44.11kB 0.2s done
+#18 DONE 0.3s
+
+#22 [notification-service internal] load build context
+#22 transferring context: 51.25kB 0.2s done
+#22 DONE 0.3s
+
+#20 [ride-share-service internal] load build context
+#20 transferring context: 124.23kB 0.3s done
+#20 DONE 0.4s
+
+#39 [service-registry build 14/14] RUN mvn -pl service-registry -am package -DskipTests -q
+#39 CACHED
+
+#40 [service-registry build  9/14] COPY travel-packages-service/pom.xml travel-packages-service/pom.xml
+#40 CACHED
+
+#41 [service-registry build  3/14] COPY pom.xml .
+#41 CACHED
+
+#42 [service-registry build  5/14] COPY api-gateway/pom.xml api-gateway/pom.xml
+#42 CACHED
+
+#43 [service-registry stage-1 4/5] RUN addgroup -S spring && adduser -S spring -G spring
+#43 CACHED
+
+#31 [service-registry build  2/14] WORKDIR /workspace
+#31 CACHED
+
+#44 [service-registry build 12/14] COPY travel-agent-service/pom.xml travel-agent-service/pom.xml
+#44 CACHED
+
+#45 [service-registry stage-1 3/5] RUN apk add --no-cache wget
+#45 CACHED
+
+#46 [service-registry build  4/14] COPY service-registry/pom.xml service-registry/pom.xml
+#46 CACHED
+
+#47 [service-registry build  6/14] COPY auth-service/pom.xml auth-service/pom.xml
+#47 CACHED
+
+#48 [service-registry stage-1 2/5] WORKDIR /app
+#48 CACHED
+
+#49 [service-registry build 13/14] COPY service-registry/src service-registry/src
+#49 CACHED
+
+#50 [service-registry build  7/14] COPY bus-booking-service/pom.xml bus-booking-service/pom.xml
+#50 CACHED
+
+#51 [service-registry build  8/14] COPY ride-share-service/pom.xml ride-share-service/pom.xml
+#51 CACHED
+
+#52 [service-registry build 11/14] COPY notification-service/pom.xml notification-service/pom.xml
+#52 CACHED
+
+#53 [service-registry build 10/14] COPY hotel-service/pom.xml hotel-service/pom.xml
+#53 CACHED
+
+#54 [service-registry stage-1 5/5] COPY --from=build /workspace/service-registry/target/*.jar app.jar
+#54 CACHED
+
+#17 [travel-packages-service internal] load build context
+#17 transferring context: 248.95kB 0.4s done
+#17 DONE 0.4s
+
+#19 [hotel-service internal] load build context
+#19 transferring context: 138.20kB 0.3s done
+#19 DONE 0.4s
+
+#55 [bus-booking-service build  3/14] COPY pom.xml .
+#55 CACHED
+
+#56 [bus-booking-service build 12/14] COPY travel-agent-service/pom.xml travel-agent-service/pom.xml
+#56 CACHED
+
+#57 [bus-booking-service build  9/14] COPY travel-packages-service/pom.xml travel-packages-service/pom.xml
+#57 CACHED
+
+#58 [bus-booking-service build 10/14] COPY hotel-service/pom.xml hotel-service/pom.xml
+#58 CACHED
+
+#59 [bus-booking-service build 11/14] COPY notification-service/pom.xml notification-service/pom.xml
+#59 CACHED
+
+#60 [bus-booking-service build  7/14] COPY bus-booking-service/pom.xml bus-booking-service/pom.xml
+#60 CACHED
+
+#61 [bus-booking-service build  6/14] COPY auth-service/pom.xml auth-service/pom.xml
+#61 CACHED
+
+#62 [bus-booking-service build  5/14] COPY api-gateway/pom.xml api-gateway/pom.xml
+#62 CACHED
+
+#63 [bus-booking-service build  4/14] COPY service-registry/pom.xml service-registry/pom.xml
+#63 CACHED
+
+#64 [bus-booking-service build  8/14] COPY ride-share-service/pom.xml ride-share-service/pom.xml
+#64 CACHED
+
+#65 [bus-booking-service build 13/14] COPY bus-booking-service/src bus-booking-service/src
+#65 CACHED
+
+#66 [api-gateway build  5/14] COPY api-gateway/pom.xml api-gateway/pom.xml
+#66 CACHED
+
+#67 [api-gateway build  7/14] COPY bus-booking-service/pom.xml bus-booking-service/pom.xml
+#67 CACHED
+
+#68 [api-gateway build  8/14] COPY ride-share-service/pom.xml ride-share-service/pom.xml
+#68 CACHED
+
+#69 [api-gateway build 10/14] COPY hotel-service/pom.xml hotel-service/pom.xml
+#69 CACHED
+
+#70 [api-gateway build 11/14] COPY notification-service/pom.xml notification-service/pom.xml
+#70 CACHED
+
+#71 [api-gateway build  9/14] COPY travel-packages-service/pom.xml travel-packages-service/pom.xml
+#71 CACHED
+
+#72 [api-gateway build  3/14] COPY pom.xml .
+#72 CACHED
+
+#73 [api-gateway build 12/14] COPY travel-agent-service/pom.xml travel-agent-service/pom.xml
+#73 CACHED
+
+#74 [api-gateway build  4/14] COPY service-registry/pom.xml service-registry/pom.xml
+#74 CACHED
+
+#75 [api-gateway build  6/14] COPY auth-service/pom.xml auth-service/pom.xml
+#75 CACHED
+
+#76 [api-gateway build 13/14] COPY api-gateway/src api-gateway/src
+#76 CACHED
+
+#77 [auth-service build  9/14] COPY travel-packages-service/pom.xml travel-packages-service/pom.xml
+#77 CACHED
+
+#78 [auth-service build 11/14] COPY notification-service/pom.xml notification-service/pom.xml
+#78 CACHED
+
+#79 [auth-service build  7/14] COPY bus-booking-service/pom.xml bus-booking-service/pom.xml
+#79 CACHED
+
+#80 [auth-service build  8/14] COPY ride-share-service/pom.xml ride-share-service/pom.xml
+#80 CACHED
+
+#81 [auth-service build  5/14] COPY api-gateway/pom.xml api-gateway/pom.xml
+#81 CACHED
+
+#82 [auth-service build 10/14] COPY hotel-service/pom.xml hotel-service/pom.xml
+#82 CACHED
+
+#83 [auth-service build  4/14] COPY service-registry/pom.xml service-registry/pom.xml
+#83 CACHED
+
+#84 [auth-service build 12/14] COPY travel-agent-service/pom.xml travel-agent-service/pom.xml
+#84 CACHED
+
+#85 [auth-service build  3/14] COPY pom.xml .
+#85 CACHED
+
+#86 [auth-service build  6/14] COPY auth-service/pom.xml auth-service/pom.xml
+#86 CACHED
+
+#87 [auth-service build 13/14] COPY auth-service/src auth-service/src
+#87 CACHED
+
+#88 [ride-share-service build  7/14] COPY bus-booking-service/pom.xml bus-booking-service/pom.xml
+#88 CACHED
+
+#89 [ride-share-service build  4/14] COPY service-registry/pom.xml service-registry/pom.xml
+#89 CACHED
+
+#90 [ride-share-service build  3/14] COPY pom.xml .
+#90 CACHED
+
+#91 [ride-share-service build  9/14] COPY travel-packages-service/pom.xml travel-packages-service/pom.xml
+#91 CACHED
+
+#31 [ride-share-service build  2/14] WORKDIR /workspace
+#31 CACHED
+
+#92 [ride-share-service build 11/14] COPY notification-service/pom.xml notification-service/pom.xml
+#92 CACHED
+
+#93 [ride-share-service build 12/14] COPY travel-agent-service/pom.xml travel-agent-service/pom.xml
+#93 CACHED
+
+#94 [ride-share-service build  6/14] COPY auth-service/pom.xml auth-service/pom.xml
+#94 CACHED
+
+#95 [ride-share-service build  5/14] COPY api-gateway/pom.xml api-gateway/pom.xml
+#95 CACHED
+
+#96 [ride-share-service build  8/14] COPY ride-share-service/pom.xml ride-share-service/pom.xml
+#96 CACHED
+
+#97 [ride-share-service build 10/14] COPY hotel-service/pom.xml hotel-service/pom.xml
+#97 CACHED
+
+#98 [ride-share-service build 13/14] COPY ride-share-service/src ride-share-service/src
+#98 CACHED
+
+#99 [service-registry] exporting to image
+#99 exporting layers 0.0s done
+#99 exporting manifest sha256:1c9814b3704d8168c88280c2f768c0f38d296e329e839af17f23b63f04115092 done
+#99 exporting config sha256:fd7f653e9c4f235116ce827acc6d04e9fb5639be2014167bd6b1ebcc84f1f4fc 0.0s done
+#99 exporting attestation manifest sha256:461fe59d52aa6e2fb816e5a812ff2e0b0dc0481cf6c80b1225a58958ceb6cce3
+#99 ...
+
+#100 [travel-packages-service build  6/14] COPY auth-service/pom.xml auth-service/pom.xml
+#100 CACHED
+
+#101 [travel-packages-service build  3/14] COPY pom.xml .
+#101 CACHED
+
+#102 [travel-packages-service build  4/14] COPY service-registry/pom.xml service-registry/pom.xml
+#102 CACHED
+
+#103 [travel-packages-service build  8/14] COPY ride-share-service/pom.xml ride-share-service/pom.xml
+#103 CACHED
+
+#104 [travel-packages-service build 10/14] COPY hotel-service/pom.xml hotel-service/pom.xml
+#104 CACHED
+
+#105 [travel-packages-service build  5/14] COPY api-gateway/pom.xml api-gateway/pom.xml
+#105 CACHED
+
+#106 [travel-packages-service build  9/14] COPY travel-packages-service/pom.xml travel-packages-service/pom.xml
+#106 CACHED
+
+#107 [travel-packages-service build 12/14] COPY travel-agent-service/pom.xml travel-agent-service/pom.xml
+#107 CACHED
+
+#108 [travel-packages-service build 11/14] COPY notification-service/pom.xml notification-service/pom.xml
+#108 CACHED
+
+#109 [travel-packages-service build  7/14] COPY bus-booking-service/pom.xml bus-booking-service/pom.xml
+#109 CACHED
+
+#110 [travel-packages-service build 13/14] COPY travel-packages-service/src travel-packages-service/src
+#110 CACHED
+
+#111 [notification-service build  4/14] COPY service-registry/pom.xml service-registry/pom.xml
+#111 CACHED
+
+#112 [notification-service build 12/14] COPY travel-agent-service/pom.xml travel-agent-service/pom.xml
+#112 CACHED
+
+#113 [notification-service build 11/14] COPY notification-service/pom.xml notification-service/pom.xml
+#113 CACHED
+
+#114 [notification-service build  3/14] COPY pom.xml .
+#114 CACHED
+
+#115 [notification-service build 10/14] COPY hotel-service/pom.xml hotel-service/pom.xml
+#115 CACHED
+
+#116 [notification-service build  9/14] COPY travel-packages-service/pom.xml travel-packages-service/pom.xml
+#116 CACHED
+
+#117 [notification-service build  6/14] COPY auth-service/pom.xml auth-service/pom.xml
+#117 CACHED
+
+#118 [notification-service build  5/14] COPY api-gateway/pom.xml api-gateway/pom.xml
+#118 CACHED
+
+#119 [notification-service build  8/14] COPY ride-share-service/pom.xml ride-share-service/pom.xml
+#119 CACHED
+
+#120 [notification-service build  7/14] COPY bus-booking-service/pom.xml bus-booking-service/pom.xml
+#120 CACHED
+
+#121 [notification-service build 13/14] COPY notification-service/src notification-service/src
+#121 CACHED
+
+#122 [hotel-service build  9/14] COPY travel-packages-service/pom.xml travel-packages-service/pom.xml
+#122 CACHED
+
+#123 [hotel-service build  7/14] COPY bus-booking-service/pom.xml bus-booking-service/pom.xml
+#123 CACHED
+
+#124 [hotel-service build  6/14] COPY auth-service/pom.xml auth-service/pom.xml
+#124 CACHED
+
+#125 [hotel-service build  5/14] COPY api-gateway/pom.xml api-gateway/pom.xml
+#125 CACHED
+
+#31 [notification-service build  2/14] WORKDIR /workspace
+#31 CACHED
+
+#126 [hotel-service build 12/14] COPY travel-agent-service/pom.xml travel-agent-service/pom.xml
+#126 CACHED
+
+#127 [hotel-service build 11/14] COPY notification-service/pom.xml notification-service/pom.xml
+#127 CACHED
+
+#128 [hotel-service build 10/14] COPY hotel-service/pom.xml hotel-service/pom.xml
+#128 CACHED
+
+#129 [hotel-service build  8/14] COPY ride-share-service/pom.xml ride-share-service/pom.xml
+#129 CACHED
+
+#130 [hotel-service build  3/14] COPY pom.xml .
+#130 CACHED
+
+#131 [hotel-service build  4/14] COPY service-registry/pom.xml service-registry/pom.xml
+#131 CACHED
+
+#132 [hotel-service build 13/14] COPY hotel-service/src hotel-service/src
+#132 CACHED
+
+#99 [service-registry] exporting to image
+#99 exporting attestation manifest sha256:461fe59d52aa6e2fb816e5a812ff2e0b0dc0481cf6c80b1225a58958ceb6cce3 0.3s done
+#99 exporting manifest list sha256:3204b0d945f3f20dd3782e9bfe2d0f3acc0bf9217205bb96c4ffc8c855da103b
+#99 exporting manifest list sha256:3204b0d945f3f20dd3782e9bfe2d0f3acc0bf9217205bb96c4ffc8c855da103b 0.1s done
+#99 naming to docker.io/library/sanchari-travel-platform-service-registry:latest
+#99 naming to docker.io/library/sanchari-travel-platform-service-registry:latest done
+#99 unpacking to docker.io/library/sanchari-travel-platform-service-registry:latest
+#99 unpacking to docker.io/library/sanchari-travel-platform-service-registry:latest 0.2s done
+#99 DONE 1.0s
+
+#133 [notification-service build 14/14] RUN mvn -pl notification-service -am package -DskipTests -q
+#133 ...
+
+#134 [service-registry] resolving provenance for metadata file
+#134 DONE 0.1s
+
+#135 [travel-packages-service build 14/14] RUN mvn -pl travel-packages-service -am package -DskipTests -q
+#135 ...
+
+#136 [travel-agent-service build 14/14] RUN mvn -pl travel-agent-service -am package -DskipTests -q
+#136 ...
+
+#137 [ride-share-service build 14/14] RUN mvn -pl ride-share-service -am package -DskipTests -q
+#137 ...
+
+#138 [api-gateway build 14/14] RUN mvn -pl api-gateway -am package -DskipTests -q
+#138 ...
+
+#139 [auth-service build 14/14] RUN mvn -pl auth-service -am package -DskipTests -q
+#139 ...
+
+#140 [bus-booking-service build 14/14] RUN mvn -pl bus-booking-service -am package -DskipTests -q
+#140 ...
+
+#141 [hotel-service build 14/14] RUN mvn -pl hotel-service -am package -DskipTests -q
+#141 ...
+
+#138 [api-gateway build 14/14] RUN mvn -pl api-gateway -am package -DskipTests -q
+#138 103.7 [ERROR] COMPILATION ERROR : 
+#138 103.7 [ERROR] /workspace/api-gateway/src/main/java/com/travelplatform/gateway/aggregator/BookingAggregatorService.java:[131,39] illegal start of expression
+#138 103.8 [ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.15.0:compile (default-compile) on project api-gateway: Compilation failure
+#138 103.8 [ERROR] /workspace/api-gateway/src/main/java/com/travelplatform/gateway/aggregator/BookingAggregatorService.java:[131,39] illegal start of expression
+#138 103.8 [ERROR] 
+#138 103.8 [ERROR] -> [Help 1]
+#138 103.8 [ERROR] 
+#138 103.8 [ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+#138 103.8 [ERROR] Re-run Maven using the -X switch to enable full debug logging.
+#138 103.8 [ERROR] 
+#138 103.8 [ERROR] For more information about the errors and possible solutions, please read the following articles:
+#138 103.8 [ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+#138 103.8 [ERROR] 
+#138 103.8 [ERROR] After correcting the problems, you can resume the build with the command
+#138 103.8 [ERROR]   mvn <args> -rf :api-gateway
+#138 ERROR: process "/bin/sh -c mvn -pl api-gateway -am package -DskipTests -q" did not complete successfully: exit code: 1
+
+#139 [auth-service build 14/14] RUN mvn -pl auth-service -am package -DskipTests -q
+#139 ...
+
+#136 [travel-agent-service build 14/14] RUN mvn -pl travel-agent-service -am package -DskipTests -q
+#136 CANCELED
+
+#141 [hotel-service build 14/14] RUN mvn -pl hotel-service -am package -DskipTests -q
+#141 ...
+
+#137 [ride-share-service build 14/14] RUN mvn -pl ride-share-service -am package -DskipTests -q
+#137 CANCELED
+
+#139 [auth-service build 14/14] RUN mvn -pl auth-service -am package -DskipTests -q
+#139 CANCELED
+
+#135 [travel-packages-service build 14/14] RUN mvn -pl travel-packages-service -am package -DskipTests -q
+#135 CANCELED
+
+#140 [bus-booking-service build 14/14] RUN mvn -pl bus-booking-service -am package -DskipTests -q
+#140 ...
+
+#133 [notification-service build 14/14] RUN mvn -pl notification-service -am package -DskipTests -q
+#133 CANCELED
+
+#141 [hotel-service build 14/14] RUN mvn -pl hotel-service -am package -DskipTests -q
+#141 CANCELED
+
+#140 [bus-booking-service build 14/14] RUN mvn -pl bus-booking-service -am package -DskipTests -q
+#140 CANCELED
+------
+ > [api-gateway build 14/14] RUN mvn -pl api-gateway -am package -DskipTests -q:
+103.8 [ERROR] -> [Help 1]
+103.8 [ERROR] 
+103.8 [ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+103.8 [ERROR] Re-run Maven using the -X switch to enable full debug logging.
+103.8 [ERROR] 
+103.8 [ERROR] For more information about the errors and possible solutions, please read the following articles:
+103.8 [ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+103.8 [ERROR] 
+103.8 [ERROR] After correcting the problems, you can resume the build with the command
+103.8 [ERROR]   mvn <args> -rf :api-gateway
+------
+Dockerfile:16
+
+--------------------
+
+  14 |     COPY api-gateway/src api-gateway/src
+
+  15 |     
+
+  16 | >>> RUN mvn -pl api-gateway -am package -DskipTests -q
+
+  17 |     
+
+  18 |     FROM eclipse-temurin:17-jre-alpine
+
+--------------------
+
+target api-gateway: failed to solve: process "/bin/sh -c mvn -pl api-gateway -am package -DskipTests -q" did not complete successfully: exit code: 1
+

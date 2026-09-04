@@ -91,44 +91,72 @@ public class BookingAggregatorService {
      * only real failures reach the circuit breaker's fallback.
      */
     private Mono<SourceResult> fetchBus(String userId) {
-        Mono<SourceResult> call = busClient.get()
-                .uri("/api/user/bookingDetails")
-                .header("X-Authenticated-User-Id", userId)
-                .exchangeToMono(response -> {
-                    if (response.statusCode().is2xxSuccessful()) {
-                        return response.bodyToMono(JsonNode.class)
-                                .map(body -> new SourceResult("busBookings", body.path("bookingDetails"), null));
-                    }
-                    if (response.statusCode() == HttpStatus.NOT_FOUND) {
-                        return Mono.just(new SourceResult("busBookings", objectMapper.createArrayNode(), null));
-                    }
-                    return response.createException().flatMap(Mono::error);
-                });
+    Mono<SourceResult> call = busClient.get()
+            .uri("/api/user/bookingDetails")
+            .header("X-Authenticated-User-Id", userId)
+            .exchangeToMono(response -> {
+                if (response.statusCode().is2xxSuccessful()) {
+                    return response.bodyToMono(JsonNode.class)
+                            .map(body -> new SourceResult(
+                                    "busBookings",
+                                    body.path("bookingDetails"),
+                                    null
+                            ));
+                }
 
-        ReactiveCircuitBreaker cb = circuitBreakerFactory.create("busBookings");
-        return cb.run(call, throwable -> {
-            log.warn("Bus booking aggregation failed: {}", throwable.toString());
-            return Mono.just(new SourceResult("busBookings", objectMapper.createArrayNode(), "Bus bookings are temporarily unavailable."));
-        });
-    }
+                if (response.statusCode() == HttpStatus.NOT_FOUND) {
+                    return Mono.just(new SourceResult(
+                            "busBookings",
+                            objectMapper.createArrayNode(),
+                            null
+                    ));
+                }
 
-    /**
-     * Ride, hotel, and package's "my bookings" endpoints all share the same
-     * shape: 200 with a JSON array, empty array (not 404) when the user has
-     * none. So any non-2xx here is a genuine failure.
-     */
-    private Mono<SourceResult> fetchArray(WebClient client, String path, String userId, String key, String label) {
-        Mono<SourceResult> call = client.get()
-                .uri(path)
-                .header("X-Authenticated-User-Id", userId)
-                .retrieve()
-                .bodyToMono(JsonNode.class)
-                .map(body -> new SourceResult(key, body, null));
+                return response.createException().flatMap(Mono::error);
+            });
 
-        ReactiveCircuitBreaker cb = circuitBreakerFactory.create(key);
-        return cb.run(call, throwable -> {
-            log.warn("{} aggregation failed: {}", key, throwable.toString());
-            return Mono.just(new SourceResult(key, objectMapper.createArrayNode(), label + " are temporarily unavailable."));
-        });
-    }
+    ReactiveCircuitBreaker cb = circuitBreakerFactory.create("busBookings");
+
+    return cb.run(call, throwable -> {
+        log.warn("Bus booking aggregation failed: {}", throwable.toString());
+
+        return Mono.just(new SourceResult(
+                "busBookings",
+                objectMapper.createArrayNode(),
+                "Bus bookings are temporarily unavailable."
+        ));
+    });
+}
+
+/**
+ * Ride, hotel, and package's "my bookings" endpoints all share the same
+ * shape: 200 with a JSON array, empty array (not 404) when the user has
+ * none. So any non-2xx here is a genuine failure.
+ */
+private Mono<SourceResult> fetchArray(
+        WebClient client,
+        String path,
+        String userId,
+        String key,
+        String label) {
+
+    Mono<SourceResult> call = client.get()
+            .uri(path)
+            .header("X-Authenticated-User-Id", userId)
+            .retrieve()
+            .bodyToMono(JsonNode.class)
+            .map(body -> new SourceResult(key, body, null));
+
+    ReactiveCircuitBreaker cb = circuitBreakerFactory.create(key);
+
+    return cb.run(call, throwable -> {
+        log.warn("{} aggregation failed: {}", label, throwable.toString());
+
+        return Mono.just(new SourceResult(
+                key,
+                objectMapper.createArrayNode(),
+                label + " are temporarily unavailable."
+        ));
+    });
+}
 }
