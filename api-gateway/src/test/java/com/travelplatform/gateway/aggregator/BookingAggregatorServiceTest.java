@@ -1,5 +1,7 @@
 package com.travelplatform.gateway.aggregator;
 
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.timelimiter.TimeLimiterRegistry;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -34,7 +36,19 @@ class BookingAggregatorServiceTest {
         WebClient.Builder builder = WebClient.builder().exchangeFunction(exchangeFunction);
         // No Spring context needed — ReactiveResilience4JCircuitBreakerFactory
         // manages its own default registries when none are configured.
-        return new BookingAggregatorService(builder, new ReactiveResilience4JCircuitBreakerFactory(), objectMapper);
+       CircuitBreakerRegistry circuitBreakerRegistry =
+        CircuitBreakerRegistry.ofDefaults();
+
+TimeLimiterRegistry timeLimiterRegistry =
+        TimeLimiterRegistry.ofDefaults();
+
+ReactiveResilience4JCircuitBreakerFactory factory =
+        new ReactiveResilience4JCircuitBreakerFactory(
+                circuitBreakerRegistry,
+                timeLimiterRegistry
+        );
+
+return new BookingAggregatorService(builder, factory, objectMapper);
     }
 
     private ClientResponse jsonResponse(HttpStatus status, String body) {
