@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.cloud.circuitbreaker.resilience4j.ReactiveResilience4JCircuitBreakerFactory;
+import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreaker;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.ClientRequest;
@@ -12,11 +13,18 @@ import org.springframework.web.reactive.function.client.ExchangeFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import org.reactivestreams.Publisher;
 
+import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Exercises BookingAggregatorService against a stubbed WebClient
@@ -32,9 +40,18 @@ class BookingAggregatorServiceTest {
 
     private BookingAggregatorService serviceWith(ExchangeFunction exchangeFunction) {
         WebClient.Builder builder = WebClient.builder().exchangeFunction(exchangeFunction);
-        // No Spring context needed — ReactiveResilience4JCircuitBreakerFactory
-        // manages its own default registries when none are configured.
-        return new BookingAggregatorService(builder, new ReactiveResilience4JCircuitBreakerFactory(), objectMapper);
+        ReactiveResilience4JCircuitBreakerFactory factory =
+                mock(ReactiveResilience4JCircuitBreakerFactory.class);
+        ReactiveCircuitBreaker circuitBreaker = mock(ReactiveCircuitBreaker.class);
+        when(factory.create(anyString())).thenReturn(circuitBreaker);
+        when(circuitBreaker.run(any(Publisher.class), any(Function.class))).thenAnswer(invocation -> {
+            Publisher<?> primary = invocation.getArgument(0);
+            Function<Throwable, Publisher<?>> fallback = invocation.getArgument(1);
+            return Mono.from(primary)
+                    .timeout(Duration.ofSeconds(1))
+                    .onErrorResume(error -> Mono.from(fallback.apply(error)));
+        });
+        return new BookingAggregatorService(builder, factory, objectMapper);
     }
 
     private ClientResponse jsonResponse(HttpStatus status, String body) {
