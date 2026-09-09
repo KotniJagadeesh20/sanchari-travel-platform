@@ -10,10 +10,10 @@ jobs:
     name: Build & unit/slice tests (all 9 modules)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -38,7 +38,7 @@ jobs:
     name: Validate docker-compose.yml
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # docker-compose.yml uses ${VAR:?message} for JWT_SECRET and
       # NOTIFICATION_INTERNAL_API_KEY (no default — fails fast, see
