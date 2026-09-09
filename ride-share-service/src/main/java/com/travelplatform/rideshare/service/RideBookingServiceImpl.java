@@ -58,6 +58,7 @@ public class RideBookingServiceImpl implements RideBookingService {
         booking.setTotalAmount(seats * ride.getPricePerSeat());
         booking.setStatus(BookingStatus.PENDING);
         booking.setBookingTime(LocalDateTime.now());
+        booking.setSeatsReserved(true);
 
         // Reserve immediately while holding the ride row lock. Rejection or
         // cancellation releases the reservation.
@@ -85,9 +86,18 @@ public class RideBookingServiceImpl implements RideBookingService {
         RideBooking booking = getBookingForUpdate(bookingId);
         assertIsDriver(booking.getRide(), callerId, "approve");
         assertIsPending(booking);
-        // Serialize the state transition with booking/cancellation operations.
-        rideRepo.findForUpdateById(booking.getRide().getId())
+        // Legacy pending rows predate immediate reservation. Reserve them once
+        // during approval while the ride and booking rows are locked.
+        Ride ride = rideRepo.findForUpdateById(booking.getRide().getId())
                 .orElseThrow(() -> new RideNotFoundException(booking.getRide().getId()));
+        if (!Boolean.TRUE.equals(booking.getSeatsReserved())) {
+            if (booking.getSeatsBooked() > ride.getAvailableSeats()) {
+                throw new InsufficientSeatsException(booking.getSeatsBooked(), ride.getAvailableSeats());
+            }
+            ride.setAvailableSeats(ride.getAvailableSeats() - booking.getSeatsBooked());
+            rideRepo.save(ride);
+            booking.setSeatsReserved(true);
+        }
 
         booking.setStatus(BookingStatus.APPROVED);
         RideBooking saved = bookingRepo.save(booking);
@@ -112,8 +122,11 @@ public class RideBookingServiceImpl implements RideBookingService {
 
         Ride ride = rideRepo.findForUpdateById(booking.getRide().getId())
                 .orElseThrow(() -> new RideNotFoundException(booking.getRide().getId()));
-        ride.setAvailableSeats(ride.getAvailableSeats() + booking.getSeatsBooked());
-        rideRepo.save(ride);
+        if (Boolean.TRUE.equals(booking.getSeatsReserved())) {
+            ride.setAvailableSeats(ride.getAvailableSeats() + booking.getSeatsBooked());
+            rideRepo.save(ride);
+            booking.setSeatsReserved(false);
+        }
         booking.setStatus(BookingStatus.REJECTED);
         RideBooking saved = bookingRepo.save(booking);
 
@@ -139,11 +152,14 @@ public class RideBookingServiceImpl implements RideBookingService {
         }
 
         // Pending and approved bookings both hold seats.
-        if (booking.getStatus() == BookingStatus.APPROVED || booking.getStatus() == BookingStatus.PENDING) {
+        boolean legacyApproved = booking.getStatus() == BookingStatus.APPROVED
+                && !Boolean.TRUE.equals(booking.getSeatsReserved());
+        if (Boolean.TRUE.equals(booking.getSeatsReserved()) || legacyApproved) {
             Ride ride = rideRepo.findForUpdateById(booking.getRide().getId())
                     .orElseThrow(() -> new RideNotFoundException(booking.getRide().getId()));
             ride.setAvailableSeats(ride.getAvailableSeats() + booking.getSeatsBooked());
             rideRepo.save(ride);
+            booking.setSeatsReserved(false);
         }
 
         booking.setStatus(BookingStatus.CANCELLED);

@@ -90,7 +90,7 @@ public class AuthServiceImpl implements AuthService {
     // ─── Refresh ─────────────────────────────────────────────────────────────
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = TokenRefreshException.class)
     public TokenRefreshResponse refresh(RefreshTokenRequest request) {
 
         RefreshToken existing = refreshTokenService.verifyValidForUpdate(request.getRefreshToken());

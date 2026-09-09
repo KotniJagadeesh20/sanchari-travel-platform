@@ -133,6 +133,19 @@ class JwtValidatorTest {
     }
 
     @Test
+    void doFilterInternal_acceptsCaseInsensitiveBearerScheme() throws Exception {
+        String token = buildToken("asha@example.com", "ROLE_USER", 60_000);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "bearer " + token);
+
+        jwtValidator.doFilterInternal(
+                request, new MockHttpServletResponse(), new MockFilterChain());
+
+        assertEquals("asha@example.com",
+                SecurityContextHolder.getContext().getAuthentication().getName());
+    }
+
+    @Test
     void doFilterInternal_throwsBadCredentials_whenTokenSignedWithWrongKey() {
         SecretKey wrongKey = Keys.hmacShaKeyFor(("wrongwrongwrongwrongwrongwrongwrongwrong").getBytes());
         String badToken = Jwts.builder()

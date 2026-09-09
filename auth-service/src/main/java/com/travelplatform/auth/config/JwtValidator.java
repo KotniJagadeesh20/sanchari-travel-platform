@@ -37,7 +37,7 @@ public class JwtValidator extends OncePerRequestFilter{
 			
 			if (jwt != null) {
 				try {
-					if (!jwt.startsWith("Bearer ") || jwt.length() <= 7) {
+					if (jwt.length() <= 7 || !jwt.regionMatches(true, 0, "Bearer ", 0, 7)) {
 						throw new BadCredentialsException("Malformed Authorization header");
 					}
 					jwt = jwt.substring(7);

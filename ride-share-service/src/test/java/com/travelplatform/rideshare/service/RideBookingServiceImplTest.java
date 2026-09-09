@@ -72,6 +72,7 @@ class RideBookingServiceImplTest {
             assertEquals(2, booking.getSeatsBooked());
             assertEquals(1000.0, booking.getTotalAmount());
             assertEquals(passenger, booking.getPassenger());
+            assertTrue(booking.getSeatsReserved());
         }
 
         @Test
@@ -152,13 +153,13 @@ class RideBookingServiceImplTest {
             pendingBooking.setPassenger(passenger);
             pendingBooking.setSeatsBooked(2);
             pendingBooking.setStatus(BookingStatus.PENDING);
+            pendingBooking.setSeatsReserved(true);
         }
 
         @Test
         void approvesAlreadyReservedBooking_whenCallerIsDriver() {
             when(bookingRepo.findForUpdateById(bookingId)).thenReturn(Optional.of(pendingBooking));
             when(rideRepo.findForUpdateById(rideId)).thenReturn(Optional.of(ride));
-            when(rideRepo.save(any(Ride.class))).thenAnswer(i -> i.getArgument(0));
             when(bookingRepo.save(any(RideBooking.class))).thenAnswer(i -> i.getArgument(0));
 
             RideBooking result = bookingService.approveBooking(bookingId, driver.getId());
@@ -215,6 +216,7 @@ class RideBookingServiceImplTest {
             pendingBooking.setPassenger(passenger);
             pendingBooking.setSeatsBooked(2);
             pendingBooking.setStatus(BookingStatus.PENDING);
+            pendingBooking.setSeatsReserved(true);
         }
 
         @Test
@@ -277,6 +279,7 @@ class RideBookingServiceImplTest {
         @Test
         void cancelsPendingBooking_andReturnsReservedSeats() {
             booking.setStatus(BookingStatus.PENDING);
+            booking.setSeatsReserved(true);
             when(bookingRepo.findForUpdateById(bookingId)).thenReturn(Optional.of(booking));
             when(rideRepo.findForUpdateById(rideId)).thenReturn(Optional.of(ride));
             when(bookingRepo.save(any(RideBooking.class))).thenAnswer(i -> i.getArgument(0));
@@ -315,7 +318,7 @@ class RideBookingServiceImplTest {
 
         @Test
         void getBookingsByRide_returnsBookings_whenCallerIsDriver() {
-            when(rideRepo.findForUpdateById(rideId)).thenReturn(Optional.of(ride));
+            when(rideRepo.findById(rideId)).thenReturn(Optional.of(ride));
             when(bookingRepo.findByRideId(rideId)).thenReturn(List.of(new RideBooking()));
 
             assertEquals(1, bookingService.getBookingsByRide(rideId, driver.getId()).size());
@@ -323,7 +326,7 @@ class RideBookingServiceImplTest {
 
         @Test
         void getBookingsByRide_throwsUnauthorized_whenCallerIsNotDriver() {
-            when(rideRepo.findForUpdateById(rideId)).thenReturn(Optional.of(ride));
+            when(rideRepo.findById(rideId)).thenReturn(Optional.of(ride));
 
             assertThrows(UnauthorizedRideActionException.class,
                     () -> bookingService.getBookingsByRide(rideId, UUID.randomUUID()));
@@ -333,7 +336,7 @@ class RideBookingServiceImplTest {
 
         @Test
         void getBookingsByRide_throwsRideNotFound_whenRideDoesNotExist() {
-            when(rideRepo.findForUpdateById(rideId)).thenReturn(Optional.empty());
+            when(rideRepo.findById(rideId)).thenReturn(Optional.empty());
 
             assertThrows(RideNotFoundException.class,
                     () -> bookingService.getBookingsByRide(rideId, driver.getId()));
