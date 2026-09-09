@@ -61,6 +61,20 @@ public class RefreshTokenService {
 		return refreshToken;
 	}
 
+	/** Reads and locks a token so rotation cannot be replayed concurrently. */
+	public RefreshToken verifyValidForUpdate(UUID token) {
+		RefreshToken refreshToken = refreshTokenRepository.findForUpdateByToken(token)
+				.orElseThrow(() -> new TokenRefreshException("Refresh token not found. Please log in again."));
+		if (refreshToken.isRevoked()) {
+			throw new TokenRefreshException("Refresh token was revoked. Please log in again.");
+		}
+		if (refreshToken.getExpiryDate().isBefore(Instant.now())) {
+			refreshTokenRepository.delete(refreshToken);
+			throw new TokenRefreshException("Refresh token expired. Please log in again.");
+		}
+		return refreshToken;
+	}
+
 	/** Revokes a single refresh token (used on /auth/logout). */
 	@Transactional
 	public void revoke(RefreshToken refreshToken) {

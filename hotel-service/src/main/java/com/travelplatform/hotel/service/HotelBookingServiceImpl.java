@@ -43,7 +43,7 @@ public class HotelBookingServiceImpl implements HotelBookingService {
             throw new HotelNotFoundException(request.getHotelId());
         }
 
-        Room room = roomRepo.findById(request.getRoomId())
+        Room room = roomRepo.findForUpdateById(request.getRoomId())
                 .orElseThrow(() -> new RoomNotFoundException(request.getRoomId()));
         if (!room.getHotel().getId().equals(hotel.getId()) || !Boolean.TRUE.equals(room.getActive())) {
             throw new RoomNotFoundException(request.getRoomId());
@@ -51,14 +51,15 @@ public class HotelBookingServiceImpl implements HotelBookingService {
 
         // Rule: a room type can only be booked while it has spare inventory.
         // See Room.availableRooms Javadoc for the "one pool per room type" caveat.
-        if (room.getAvailableRooms() <= 0) {
+        long overlappingBookings = bookingRepo
+                .countByRoomIdAndBookingStatusNotAndCheckInDateLessThanAndCheckOutDateGreaterThan(
+                        room.getId(), BookingStatus.CANCELLED,
+                        request.getCheckOutDate(), request.getCheckInDate());
+        if (overlappingBookings >= room.getTotalRooms()) {
             throw new RoomNotAvailableException(room.getId());
         }
 
         long nights = ChronoUnit.DAYS.between(request.getCheckInDate(), request.getCheckOutDate());
-
-        room.setAvailableRooms(room.getAvailableRooms() - 1);
-        roomRepo.save(room);
 
         HotelBooking booking = new HotelBooking();
         booking.setUserId(userId);
@@ -102,10 +103,6 @@ public class HotelBookingServiceImpl implements HotelBookingService {
                 || booking.getBookingStatus() == BookingStatus.CHECKED_OUT) {
             return; // already terminal — cancelling again is a harmless no-op
         }
-
-        Room room = booking.getRoom();
-        room.setAvailableRooms(room.getAvailableRooms() + 1);
-        roomRepo.save(room);
 
         booking.setBookingStatus(BookingStatus.CANCELLED);
         bookingRepo.save(booking);

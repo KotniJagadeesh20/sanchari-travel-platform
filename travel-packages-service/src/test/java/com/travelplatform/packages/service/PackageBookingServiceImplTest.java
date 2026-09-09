@@ -81,7 +81,7 @@ class PackageBookingServiceImplTest {
 
         @Test
         void createsBooking_confirmedImmediately_andDeductsSlotsFromTheDeparture() {
-            when(departureRepo.findById(departureId)).thenReturn(Optional.of(departure));
+            when(departureRepo.findForUpdateById(departureId)).thenReturn(Optional.of(departure));
             when(departureRepo.save(any(PackageDeparture.class))).thenAnswer(i -> i.getArgument(0));
             when(bookingRepo.save(any(PackageBooking.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -98,7 +98,7 @@ class PackageBookingServiceImplTest {
         @Test
         void throwsInsufficientSlots_whenRequestExceedsDepartureAvailability() {
             departure.setAvailableSlots(1);
-            when(departureRepo.findById(departureId)).thenReturn(Optional.of(departure));
+            when(departureRepo.findForUpdateById(departureId)).thenReturn(Optional.of(departure));
 
             assertThrows(InsufficientSlotsException.class,
                     () -> bookingService.bookPackage(departureId, twoTravelers, traveler));
@@ -109,7 +109,7 @@ class PackageBookingServiceImplTest {
         @Test
         void throwsPackageNotBookable_whenPackageIsDelisted() {
             pkg.setActive(false);
-            when(departureRepo.findById(departureId)).thenReturn(Optional.of(departure));
+            when(departureRepo.findForUpdateById(departureId)).thenReturn(Optional.of(departure));
 
             assertThrows(PackageNotBookableException.class,
                     () -> bookingService.bookPackage(departureId, twoTravelers, traveler));
@@ -120,7 +120,7 @@ class PackageBookingServiceImplTest {
         @Test
         void throwsPackageNotBookable_whenThisSpecificDepartureIsCancelled() {
             departure.setActive(false); // package itself still active — only this batch was cancelled
-            when(departureRepo.findById(departureId)).thenReturn(Optional.of(departure));
+            when(departureRepo.findForUpdateById(departureId)).thenReturn(Optional.of(departure));
 
             assertThrows(PackageNotBookableException.class,
                     () -> bookingService.bookPackage(departureId, twoTravelers, traveler));
@@ -130,7 +130,7 @@ class PackageBookingServiceImplTest {
 
         @Test
         void throwsDepartureNotFound_whenDepartureDoesNotExist() {
-            when(departureRepo.findById(departureId)).thenReturn(Optional.empty());
+            when(departureRepo.findForUpdateById(departureId)).thenReturn(Optional.empty());
 
             assertThrows(PackageDepartureNotFoundException.class,
                     () -> bookingService.bookPackage(departureId, twoTravelers, traveler));

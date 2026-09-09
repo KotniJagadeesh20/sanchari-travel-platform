@@ -113,6 +113,26 @@ class JwtValidatorTest {
     }
 
     @Test
+    void doFilterInternal_throwsBadCredentials_whenHeaderIsShorterThanBearerPrefix() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "x");
+
+        assertThrows(BadCredentialsException.class,
+                () -> jwtValidator.doFilterInternal(
+                        request, new MockHttpServletResponse(), new MockFilterChain()));
+    }
+
+    @Test
+    void doFilterInternal_throwsBadCredentials_whenAuthorizationSchemeIsNotBearer() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Basic abc123");
+
+        assertThrows(BadCredentialsException.class,
+                () -> jwtValidator.doFilterInternal(
+                        request, new MockHttpServletResponse(), new MockFilterChain()));
+    }
+
+    @Test
     void doFilterInternal_throwsBadCredentials_whenTokenSignedWithWrongKey() {
         SecretKey wrongKey = Keys.hmacShaKeyFor(("wrongwrongwrongwrongwrongwrongwrongwrong").getBytes());
         String badToken = Jwts.builder()

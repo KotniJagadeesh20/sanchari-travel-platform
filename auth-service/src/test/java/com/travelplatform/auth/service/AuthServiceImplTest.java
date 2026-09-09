@@ -258,7 +258,7 @@ class AuthServiceImplTest {
 
         @Test
         void refresh_returnsNewAccessAndRefreshTokens_whenTokenValid() {
-            when(refreshTokenService.verifyValid(refreshToken.getToken())).thenReturn(refreshToken);
+            when(refreshTokenService.verifyValidForUpdate(refreshToken.getToken())).thenReturn(refreshToken);
             when(customDetailsImpl.loadUserByUsername("asha@example.com")).thenReturn(userDetails);
             when(jwtProvider.generateToken(any())).thenReturn("new.access.token");
 
@@ -275,7 +275,7 @@ class AuthServiceImplTest {
 
         @Test
         void refresh_revokesOldToken_beforeIssuingNew() {
-            when(refreshTokenService.verifyValid(refreshToken.getToken())).thenReturn(refreshToken);
+            when(refreshTokenService.verifyValidForUpdate(refreshToken.getToken())).thenReturn(refreshToken);
             when(customDetailsImpl.loadUserByUsername(anyString())).thenReturn(userDetails);
             when(jwtProvider.generateToken(any())).thenReturn("t");
             RefreshToken rotated = new RefreshToken();
@@ -289,7 +289,7 @@ class AuthServiceImplTest {
 
         @Test
         void refresh_neverReusesSameRefreshToken() {
-            when(refreshTokenService.verifyValid(refreshToken.getToken())).thenReturn(refreshToken);
+            when(refreshTokenService.verifyValidForUpdate(refreshToken.getToken())).thenReturn(refreshToken);
             when(customDetailsImpl.loadUserByUsername(anyString())).thenReturn(userDetails);
             when(jwtProvider.generateToken(any())).thenReturn("t");
             RefreshToken rotated = new RefreshToken();
@@ -304,7 +304,7 @@ class AuthServiceImplTest {
 
         @Test
         void refresh_propagatesTokenRefreshException_fromVerify() {
-            when(refreshTokenService.verifyValid(any()))
+            when(refreshTokenService.verifyValidForUpdate(any()))
                     .thenThrow(new TokenRefreshException("Expired."));
 
             assertThrows(TokenRefreshException.class, () -> authService.refresh(request));
@@ -313,7 +313,7 @@ class AuthServiceImplTest {
 
         @Test
         void refresh_propagatesTokenRefreshException_forRevokedToken() {
-            when(refreshTokenService.verifyValid(any()))
+            when(refreshTokenService.verifyValidForUpdate(any()))
                     .thenThrow(new TokenRefreshException("Refresh token was revoked."));
 
             assertThrows(TokenRefreshException.class, () -> authService.refresh(request));

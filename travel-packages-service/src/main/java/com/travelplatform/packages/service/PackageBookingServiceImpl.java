@@ -40,7 +40,7 @@ public class PackageBookingServiceImpl implements PackageBookingService {
     @Override
     @Transactional
     public PackageBooking bookPackage(UUID departureId, List<TravelerRequest> travelers, UserRef traveler) {
-        PackageDeparture departure = departureRepo.findById(departureId)
+        PackageDeparture departure = departureRepo.findForUpdateById(departureId)
                 .orElseThrow(() -> new PackageDepartureNotFoundException(departureId));
         TravelPackage pkg = departure.getTravelPackage();
 

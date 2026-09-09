@@ -3,6 +3,9 @@ package com.travelplatform.auth.repository;
 import java.util.Optional;
 import java.util.UUID;
 
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -16,6 +19,9 @@ import com.travelplatform.auth.entity.UserAdmin;
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
 
 	Optional<RefreshToken> findByToken(UUID token);
+
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	Optional<RefreshToken> findForUpdateByToken(UUID token);
 
 	@Modifying
 	@Transactional
