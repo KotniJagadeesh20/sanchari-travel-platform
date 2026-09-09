@@ -44,13 +44,14 @@ class BookingAggregatorServiceTest {
         ReactiveCircuitBreaker circuitBreaker = mock(ReactiveCircuitBreaker.class);
         when(factory.create(anyString())).thenReturn(circuitBreaker);
         when(circuitBreaker.run(any(Mono.class), any(Function.class))).thenAnswer(invocation -> {
-            Mono<?> primary = invocation.getArgument(0);
-            Function<Throwable, Mono<?>> fallback = invocation.getArgument(1);
-            return primary
-                    .timeout(Duration.ofSeconds(1))
-                    .onErrorResume(fallback);
+            return runWithTimeoutAndFallback(invocation.getArgument(0), invocation.getArgument(1));
         });
         return new BookingAggregatorService(builder, factory, objectMapper);
+    }
+
+    private static <T> Mono<T> runWithTimeoutAndFallback(
+            Mono<T> primary, Function<Throwable, Mono<T>> fallback) {
+        return primary.timeout(Duration.ofSeconds(1)).onErrorResume(fallback);
     }
 
     private ClientResponse jsonResponse(HttpStatus status, String body) {
