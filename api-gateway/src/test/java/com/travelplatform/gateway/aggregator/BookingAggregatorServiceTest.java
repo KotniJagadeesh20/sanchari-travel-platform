@@ -13,7 +13,6 @@ import org.springframework.web.reactive.function.client.ExchangeFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-import org.reactivestreams.Publisher;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -44,12 +43,12 @@ class BookingAggregatorServiceTest {
                 mock(ReactiveResilience4JCircuitBreakerFactory.class);
         ReactiveCircuitBreaker circuitBreaker = mock(ReactiveCircuitBreaker.class);
         when(factory.create(anyString())).thenReturn(circuitBreaker);
-        when(circuitBreaker.run(any(Publisher.class), any(Function.class))).thenAnswer(invocation -> {
-            Publisher<?> primary = invocation.getArgument(0);
-            Function<Throwable, Publisher<?>> fallback = invocation.getArgument(1);
-            return Mono.from(primary)
+        when(circuitBreaker.run(any(Mono.class), any(Function.class))).thenAnswer(invocation -> {
+            Mono<?> primary = invocation.getArgument(0);
+            Function<Throwable, Mono<?>> fallback = invocation.getArgument(1);
+            return primary
                     .timeout(Duration.ofSeconds(1))
-                    .onErrorResume(error -> Mono.from(fallback.apply(error)));
+                    .onErrorResume(fallback);
         });
         return new BookingAggregatorService(builder, factory, objectMapper);
     }
