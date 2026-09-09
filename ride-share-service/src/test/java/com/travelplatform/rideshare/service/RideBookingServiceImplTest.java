@@ -169,6 +169,21 @@ class RideBookingServiceImplTest {
         }
 
         @Test
+        void approvesLegacyPendingBooking_andReservesSeatsOnce() {
+            pendingBooking.setSeatsReserved(false);
+            when(bookingRepo.findForUpdateById(bookingId)).thenReturn(Optional.of(pendingBooking));
+            when(rideRepo.findForUpdateById(rideId)).thenReturn(Optional.of(ride));
+            when(bookingRepo.save(any(RideBooking.class))).thenAnswer(i -> i.getArgument(0));
+
+            RideBooking result = bookingService.approveBooking(bookingId, driver.getId());
+
+            assertEquals(BookingStatus.APPROVED, result.getStatus());
+            assertTrue(result.getSeatsReserved());
+            assertEquals(2, ride.getAvailableSeats());
+            verify(rideRepo).save(ride);
+        }
+
+        @Test
         void throwsUnauthorized_whenCallerIsNotDriver() {
             when(bookingRepo.findForUpdateById(bookingId)).thenReturn(Optional.of(pendingBooking));
             UUID strangerId = UUID.randomUUID();
@@ -221,6 +236,7 @@ class RideBookingServiceImplTest {
 
         @Test
         void rejectsBooking_andReleasesReservedSeats() {
+            ride.setAvailableSeats(2);
             when(bookingRepo.findForUpdateById(bookingId)).thenReturn(Optional.of(pendingBooking));
             when(rideRepo.findForUpdateById(rideId)).thenReturn(Optional.of(ride));
             when(bookingRepo.save(any(RideBooking.class))).thenAnswer(i -> i.getArgument(0));
@@ -228,7 +244,7 @@ class RideBookingServiceImplTest {
             RideBooking result = bookingService.rejectBooking(bookingId, driver.getId());
 
             assertEquals(BookingStatus.REJECTED, result.getStatus());
-            assertEquals(6, ride.getAvailableSeats(), "Rejecting a PENDING booking releases its reservation");
+            assertEquals(4, ride.getAvailableSeats(), "Rejecting a PENDING booking releases its reservation");
             verify(rideRepo).save(ride);
         }
 
@@ -238,6 +254,19 @@ class RideBookingServiceImplTest {
 
             assertThrows(UnauthorizedRideActionException.class,
                     () -> bookingService.rejectBooking(bookingId, UUID.randomUUID()));
+        }
+
+        @Test
+        void rejectsLegacyPendingBooking_withoutInflatingAvailability() {
+            pendingBooking.setSeatsReserved(false);
+            when(bookingRepo.findForUpdateById(bookingId)).thenReturn(Optional.of(pendingBooking));
+            when(rideRepo.findForUpdateById(rideId)).thenReturn(Optional.of(ride));
+            when(bookingRepo.save(any(RideBooking.class))).thenAnswer(i -> i.getArgument(0));
+
+            bookingService.rejectBooking(bookingId, driver.getId());
+
+            assertEquals(4, ride.getAvailableSeats());
+            verify(rideRepo, never()).save(any());
         }
     }
 
@@ -280,6 +309,7 @@ class RideBookingServiceImplTest {
         void cancelsPendingBooking_andReturnsReservedSeats() {
             booking.setStatus(BookingStatus.PENDING);
             booking.setSeatsReserved(true);
+            ride.setAvailableSeats(2);
             when(bookingRepo.findForUpdateById(bookingId)).thenReturn(Optional.of(booking));
             when(rideRepo.findForUpdateById(rideId)).thenReturn(Optional.of(ride));
             when(bookingRepo.save(any(RideBooking.class))).thenAnswer(i -> i.getArgument(0));
@@ -287,7 +317,7 @@ class RideBookingServiceImplTest {
             bookingService.cancelBooking(bookingId, passenger.getId());
 
             assertEquals(BookingStatus.CANCELLED, booking.getStatus());
-            assertEquals(6, ride.getAvailableSeats());
+            assertEquals(4, ride.getAvailableSeats());
             verify(rideRepo).save(ride);
         }
 
