@@ -139,6 +139,10 @@ which creates it automatically). Start after service-registry.
 
 http://localhost:8081/swagger-ui/index.html
 
+Only reachable when running via `mvn spring-boot:run` — under
+`docker-compose`, this port isn't published to the host (see root
+README's API documentation section).
+
 ## Tests
 
 `AuthServiceImplTest` (service-layer business rules, 17 cases),

@@ -139,12 +139,22 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/travel_auth_db
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in your .env — see .env.example}
       EUREKA_URI: http://service-registry:8761/eureka/
       OTLP_ENDPOINT: http://zipkin:4318/v1/traces
       LOGSTASH_HOST: logstash
       LOGSTASH_PORT: 5000
-    ports:
-      - "8081:8081"
+    # No `ports:` — only api-gateway, service-registry (Eureka UI), Mailhog,
+    # and the observability stack are published to the host. This service
+    # trusts X-Authenticated-* headers on the assumption that only the
+    # gateway can reach it (see JwtAuthFilter/ downstream SecurityConfig) —
+    # publishing its port to the host would let anyone on localhost forge
+    # those headers directly, bypassing auth entirely. `expose` documents
+    # the port without publishing it; containers on `travel-net` can still
+    # reach it by container name regardless (that's how api-gateway/Eureka
+    # already talk to it), `expose` is belt-and-suspenders documentation.
+    expose:
+      - "8081"
     depends_on:
       postgres:
         condition: service_healthy
@@ -174,12 +184,15 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       EUREKA_URI: http://service-registry:8761/eureka/
-      NOTIFICATION_INTERNAL_API_KEY: ${NOTIFICATION_INTERNAL_API_KEY:-local-dev-internal-key}
+      NOTIFICATION_INTERNAL_API_KEY: ${NOTIFICATION_INTERNAL_API_KEY:?NOTIFICATION_INTERNAL_API_KEY must be set in your .env — see .env.example}
       OTLP_ENDPOINT: http://zipkin:4318/v1/traces
       LOGSTASH_HOST: logstash
       LOGSTASH_PORT: 5000
-    ports:
-      - "8082:8082"
+    # See auth-service's `expose` comment above — same reasoning applies to
+    # every domain service that trusts gateway-forwarded X-Authenticated-*
+    # headers.
+    expose:
+      - "8082"
     depends_on:
       postgres:
         condition: service_healthy
@@ -211,12 +224,13 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       EUREKA_URI: http://service-registry:8761/eureka/
-      NOTIFICATION_INTERNAL_API_KEY: ${NOTIFICATION_INTERNAL_API_KEY:-local-dev-internal-key}
+      NOTIFICATION_INTERNAL_API_KEY: ${NOTIFICATION_INTERNAL_API_KEY:?NOTIFICATION_INTERNAL_API_KEY must be set in your .env — see .env.example}
       OTLP_ENDPOINT: http://zipkin:4318/v1/traces
       LOGSTASH_HOST: logstash
       LOGSTASH_PORT: 5000
-    ports:
-      - "8083:8083"
+    # See auth-service's `expose` comment above.
+    expose:
+      - "8083"
     depends_on:
       postgres:
         condition: service_healthy
@@ -248,12 +262,13 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       EUREKA_URI: http://service-registry:8761/eureka/
-      NOTIFICATION_INTERNAL_API_KEY: ${NOTIFICATION_INTERNAL_API_KEY:-local-dev-internal-key}
+      NOTIFICATION_INTERNAL_API_KEY: ${NOTIFICATION_INTERNAL_API_KEY:?NOTIFICATION_INTERNAL_API_KEY must be set in your .env — see .env.example}
       OTLP_ENDPOINT: http://zipkin:4318/v1/traces
       LOGSTASH_HOST: logstash
       LOGSTASH_PORT: 5000
-    ports:
-      - "8084:8084"
+    # See auth-service's `expose` comment above.
+    expose:
+      - "8084"
     depends_on:
       postgres:
         condition: service_healthy
@@ -297,12 +312,13 @@ services:
       EUREKA_URI: http://service-registry:8761/eureka/
       MAIL_HOST: mailhog
       MAIL_PORT: 1025
-      NOTIFICATION_INTERNAL_API_KEY: ${NOTIFICATION_INTERNAL_API_KEY:-local-dev-internal-key}
+      NOTIFICATION_INTERNAL_API_KEY: ${NOTIFICATION_INTERNAL_API_KEY:?NOTIFICATION_INTERNAL_API_KEY must be set in your .env — see .env.example}
       OTLP_ENDPOINT: http://zipkin:4318/v1/traces
       LOGSTASH_HOST: logstash
       LOGSTASH_PORT: 5000
-    ports:
-      - "8086:8086"
+    # See auth-service's `expose` comment above.
+    expose:
+      - "8086"
     depends_on:
       postgres:
         condition: service_healthy
@@ -334,12 +350,13 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       EUREKA_URI: http://service-registry:8761/eureka/
-      NOTIFICATION_INTERNAL_API_KEY: ${NOTIFICATION_INTERNAL_API_KEY:-local-dev-internal-key}
+      NOTIFICATION_INTERNAL_API_KEY: ${NOTIFICATION_INTERNAL_API_KEY:?NOTIFICATION_INTERNAL_API_KEY must be set in your .env — see .env.example}
       OTLP_ENDPOINT: http://zipkin:4318/v1/traces
       LOGSTASH_HOST: logstash
       LOGSTASH_PORT: 5000
-    ports:
-      - "8085:8085"
+    # See auth-service's `expose` comment above.
+    expose:
+      - "8085"
     depends_on:
       postgres:
         condition: service_healthy
@@ -377,8 +394,10 @@ services:
       OTLP_ENDPOINT: http://zipkin:4318/v1/traces
       LOGSTASH_HOST: logstash
       LOGSTASH_PORT: 5000
-    ports:
-      - "8088:8088"
+    # See auth-service's `expose` comment above — same header-trust pattern
+    # (this service's own JwtValidator explicitly says so, see its Javadoc).
+    expose:
+      - "8088"
     depends_on:
       service-registry:
         condition: service_healthy
@@ -413,7 +432,7 @@ services:
     container_name: travel-api-gateway
     environment:
       EUREKA_URI: http://service-registry:8761/eureka/
-      JWT_SECRET: bvvrysgguveuuggynuugrsyfnngyuwgnygnsgyngnugycutjngjhnss
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in your .env — see .env.example}
       OTLP_ENDPOINT: http://zipkin:4318/v1/traces
       LOGSTASH_HOST: logstash
       LOGSTASH_PORT: 5000

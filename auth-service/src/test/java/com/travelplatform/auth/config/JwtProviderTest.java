@@ -9,7 +9,6 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,16 +27,21 @@ import javax.crypto.SecretKey;
 @ExtendWith(MockitoExtension.class)
 class JwtProviderTest {
 
+	private static final String TEST_SECRET =
+			"test-only-secret-key-not-used-anywhere-else-must-be-long-enough-for-hs256";
+
 	@Mock
 	private UserAdminRepository userAdminRepo;
 
-	@InjectMocks
 	private JwtProvider jwtProvider;
 
 	private UUID johnId;
 
 	@BeforeEach
 	void setUp() {
+		// JwtProvider takes the JWT secret via constructor injection (@Value),
+		// which @InjectMocks can't supply — construct it explicitly instead.
+		jwtProvider = new JwtProvider(userAdminRepo, TEST_SECRET);
 		johnId = UUID.randomUUID();
 	}
 
@@ -61,7 +65,7 @@ class JwtProviderTest {
 
 		assertNotNull(token);
 
-		SecretKey key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes());
+		SecretKey key = Keys.hmacShaKeyFor(TEST_SECRET.getBytes());
 		Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
 
 		assertEquals("john@example.com", claims.get("email"));
@@ -81,7 +85,7 @@ class JwtProviderTest {
 
 		String token = jwtProvider.generateToken(auth);
 
-		SecretKey key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes());
+		SecretKey key = Keys.hmacShaKeyFor(TEST_SECRET.getBytes());
 		Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
 
 		assertEquals("ROLE_ADMIN,ROLE_USER", claims.get("authorities"));
@@ -96,7 +100,7 @@ class JwtProviderTest {
 
 		String token = jwtProvider.generateToken(auth);
 
-		SecretKey key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes());
+		SecretKey key = Keys.hmacShaKeyFor(TEST_SECRET.getBytes());
 		Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
 
 		assertEquals("", claims.get("name"));

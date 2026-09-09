@@ -19,13 +19,16 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 class JwtValidatorTest {
 
+    private static final String TEST_SECRET =
+            "test-only-secret-key-not-used-anywhere-else-must-be-long-enough-for-hs256";
+
     private JwtValidator jwtValidator;
     private SecretKey key;
 
     @BeforeEach
     void setUp() {
-        jwtValidator = new JwtValidator();
-        key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes());
+        jwtValidator = new JwtValidator(TEST_SECRET);
+        key = Keys.hmacShaKeyFor(TEST_SECRET.getBytes());
         // Clear SecurityContext before each test
         SecurityContextHolder.clearContext();
     }

@@ -1,0 +1,30 @@
+# ── Maven build output ────────────────────────────────────────────────────
+# Every module (auth-service, bus-booking-service, etc.) builds into its own
+# target/ — none of it should ever be committed. Docker builds happen inside
+# a fresh container (COPY src, then `mvn package`), so gitignoring this has
+# no effect on docker-compose builds either way.
+target/
+*.class
+
+# ── Logs ───────────────────────────────────────────────────────────────────
+*.log
+
+# ── Secrets ────────────────────────────────────────────────────────────────
+# Real values go in .env (see .env.example for the template) — never commit
+# the filled-in version.
+.env
+.env.*
+!.env.example
+
+# ── IDE / editor ───────────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+
+# ── OS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

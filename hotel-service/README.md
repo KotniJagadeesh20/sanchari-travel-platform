@@ -187,3 +187,7 @@ Needs `travel_hotel_db` to exist first. Start after service-registry.
 ## Swagger UI
 
 http://localhost:8085/swagger-ui/index.html
+
+Only reachable when running via `mvn spring-boot:run` — under
+`docker-compose`, this port isn't published to the host (see root
+README's API documentation section).

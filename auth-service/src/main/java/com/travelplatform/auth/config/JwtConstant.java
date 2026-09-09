@@ -1,8 +1,12 @@
 package com.travelplatform.auth.config;
 
+/**
+ * Non-secret JWT constants. The signing secret itself is NOT here — it's
+ * externalized via the `jwt.secret` property (bound to env var JWT_SECRET,
+ * no default — see application.properties and JwtProvider/JwtValidator).
+ * A hardcoded fallback here would defeat the point of externalizing it.
+ */
 public class JwtConstant {
-
-	public static final String SECRET_KEY = "bvvrysgguveuuggynuugrsyfnngyuwgnygnsgyngnugycutjngjhnss";
 
 	public static final String JWT_HEADER = "Authorization";
 

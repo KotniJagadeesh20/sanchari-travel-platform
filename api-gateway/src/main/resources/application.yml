@@ -58,7 +58,10 @@ eureka:
     prefer-ip-address: true
 
 jwt:
-  secret: ${JWT_SECRET:bvvrysgguveuuggynuugrsyfnngyuwgnygnsgyngnugycutjngjhnss}
+  # No default — a missing JWT_SECRET must fail startup, not silently sign/verify
+  # with a value anyone reading this repo can see. Must match auth-service's
+  # jwt.secret (same env var) since this gateway verifies tokens auth-service issues.
+  secret: ${JWT_SECRET}
 
 # Booking Aggregator resilience — one instance per downstream source called
 # from BookingAggregatorService. All four share the same tuning via

@@ -24,6 +24,12 @@ import jakarta.servlet.http.HttpServletResponse;
 
 public class JwtValidator extends OncePerRequestFilter{
 
+	private final SecretKey key;
+
+	public JwtValidator(String jwtSecret) {
+		this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+	}
+
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
@@ -32,8 +38,6 @@ public class JwtValidator extends OncePerRequestFilter{
 			if(jwt!=null) {
 				jwt = jwt.substring(7);
 				try {
-					SecretKey key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes());
-					
 					Claims claims = Jwts.parserBuilder().setSigningKey(key).build()
 							.parseClaimsJws(jwt).getBody();
 					
