@@ -67,7 +67,7 @@ in-app record.
 
 ```json
 POST /internal/notifications
-X-Internal-Api-Key: local-dev-internal-key
+X-Internal-Api-Key: <value of NOTIFICATION_INTERNAL_API_KEY — see .env.example>
 {
   "userId": "….",
   "type": "BOOKING_CONFIRMED",
@@ -113,6 +113,10 @@ to send — otherwise it'll just fail and log, harmlessly.
 ## Swagger UI
 
 http://localhost:8086/swagger-ui/index.html
+
+Only reachable when running via `mvn spring-boot:run` — under
+`docker-compose`, this port isn't published to the host (see root
+README's API documentation section).
 
 ## Known simplifications
 

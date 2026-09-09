@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,6 +32,13 @@ public class AppConfig {
     @Autowired
     private UserDetailsService userDetailsService;
 
+    /**
+     * No default — a missing JWT_SECRET must fail application startup, not
+     * silently fall back to a committed value. See JwtConstant's Javadoc.
+     */
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -45,9 +53,11 @@ public class AppConfig {
                     "/auth/logout"
                 ).permitAll()
                 .requestMatchers("/actuator/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                // /auth/users/** requires a valid JWT — it returns user profile data
+                // /auth/users/** requires a valid JWT (checked here) — the individual
+                // lookup endpoints add a further self-or-admin ownership check of their
+                // own, see UserProfileController
                 .anyRequest().authenticated())
-            .addFilterBefore(new JwtValidator(), BasicAuthenticationFilter.class)
+            .addFilterBefore(new JwtValidator(jwtSecret), BasicAuthenticationFilter.class)
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .httpBasic(h -> h.disable())

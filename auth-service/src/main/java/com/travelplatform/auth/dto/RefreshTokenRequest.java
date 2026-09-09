@@ -3,7 +3,6 @@ package com.travelplatform.auth.dto;
 import java.util.UUID;
 
 import jakarta.validation.constraints.NotNull;
-import io.swagger.v3.oas.annotations.media.Schema;
 
 /** Body for /auth/refresh-token and /auth/logout. */
 @Schema(description = "Refresh token UUID (received from /auth/Loginin or /auth/refresh-token)")

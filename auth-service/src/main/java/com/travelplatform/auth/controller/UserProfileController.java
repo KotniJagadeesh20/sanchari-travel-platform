@@ -13,8 +13,11 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,7 +38,15 @@ import java.util.stream.Collectors;
  * rather than the potentially-stale cached copy in their own user_ref table.
  *
  * Requires a valid JWT — the gateway forwards X-Authenticated-* headers
- * here just like any other protected endpoint.
+ * here just like any other protected endpoint. That's necessary but not
+ * sufficient: getUserById/getUserByEmail additionally require the caller
+ * to be ROLE_ADMIN or looking up their own record — see isSelfOrAdmin().
+ * As of writing, no service actually calls either endpoint yet (grep the
+ * other services' RestTemplate/WebClient usage — there isn't one), so this
+ * restriction can't break an existing integration; when a real
+ * service-to-service caller is added, it'll need its own admin-equivalent
+ * credential (e.g. a shared internal key, same pattern as
+ * NOTIFICATION_INTERNAL_API_KEY) rather than piggybacking on a user's JWT.
  */
 @RestController
 @RequestMapping("/auth/users")
@@ -64,12 +75,14 @@ public class UserProfileController {
 
     @Operation(
         summary = "Get user profile by UUID",
-        description = "Returns non-sensitive user details (name, email, role). " +
-                "Called by domain services when their cached user_ref.email may be stale " +
-                "after a user updates their email in auth-service. Never returns password or credentials."
+        description = "Returns non-sensitive user details (name, email, role). Restricted to the user " +
+                "looking up their own record, or an admin looking up anyone's — see class Javadoc for why " +
+                "this isn't open to any authenticated caller despite the endpoint's original intent. " +
+                "Never returns password or credentials."
     )
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "User profile returned"),
+        @ApiResponse(responseCode = "403", description = "Caller is neither the target user nor an admin"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
     @GetMapping("/{userId}")
@@ -83,16 +96,23 @@ public class UserProfileController {
                 Map.of("success", false, "message", "User not found: " + userId));
         }
 
+        if (!isSelfOrAdmin(user.getEmail())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                    "success", false,
+                    "message", "You can only look up your own profile."));
+        }
+
         return ResponseEntity.ok(UserProfileResponse.from(user));
     }
 
     @Operation(
         summary = "Get user profile by email",
-        description = "Alternate lookup by email address. Useful when a domain service only has the " +
-                "X-Authenticated-Email header and needs the full profile including the UUID."
+        description = "Alternate lookup by email address. Same restriction as the by-UUID lookup above: " +
+                "the caller must be looking up their own record or be an admin."
     )
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "User profile returned"),
+        @ApiResponse(responseCode = "403", description = "Caller is neither the target user nor an admin"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
     @GetMapping("/by-email/{email}")
@@ -104,6 +124,12 @@ public class UserProfileController {
         if (user == null) {
             return ResponseEntity.status(404).body(
                 Map.of("success", false, "message", "User not found: " + email));
+        }
+
+        if (!isSelfOrAdmin(user.getEmail())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                    "success", false,
+                    "message", "You can only look up your own profile."));
         }
 
         return ResponseEntity.ok(UserProfileResponse.from(user));
@@ -141,5 +167,25 @@ public class UserProfileController {
 
         userAdminRepo.save(user);
         return ResponseEntity.ok(UserProfileResponse.from(user));
+    }
+
+    // ─── Helper ──────────────────────────────────────────────────────────────
+
+    /**
+     * True if the current request's JWT (parsed into the SecurityContext by
+     * JwtValidator, from the raw Authorization header — auth-service always
+     * has that available, unlike downstream services which only see the
+     * gateway-forwarded X-Authenticated-* headers) belongs to an admin, or
+     * to the same account as targetEmail.
+     */
+    private boolean isSelfOrAdmin(String targetEmail) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) {
+            return false;
+        }
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        boolean isSelf = targetEmail != null && targetEmail.equalsIgnoreCase(auth.getName());
+        return isAdmin || isSelf;
     }
 }

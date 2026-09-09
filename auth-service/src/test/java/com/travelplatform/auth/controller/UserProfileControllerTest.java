@@ -1,16 +1,14 @@
 package com.travelplatform.auth.controller;
 
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.hamcrest.Matchers.*;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.util.Optional;
 import java.util.UUID;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -18,6 +16,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -57,6 +59,20 @@ class UserProfileControllerTest {
         user.setPassword("encoded-password-never-returned");
     }
 
+    @AfterEach
+    void clearSecurityContext() {
+        // getUserById/getUserByEmail read SecurityContextHolder directly (see
+        // isSelfOrAdmin()) — standalone MockMvc doesn't run the real filter
+        // chain, so tests set this manually and must clean up after themselves.
+        SecurityContextHolder.clearContext();
+    }
+
+    private static void authenticateAs(String email, Role role) {
+        Authentication auth = new UsernamePasswordAuthenticationToken(
+                email, null, AuthorityUtils.createAuthorityList(role.name()));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+
     @Nested
     class GetAllUsersForAdmin {
 
@@ -93,8 +109,9 @@ class UserProfileControllerTest {
     class GetById {
 
         @Test
-        void returns200_withSafeFields_whenUserExists() throws Exception {
+        void returns200_withSafeFields_whenLookingUpSelf() throws Exception {
             when(userAdminRepo.findById(userId)).thenReturn(Optional.of(user));
+            authenticateAs("asha@example.com", Role.ROLE_USER);
 
             mockMvc.perform(get("/auth/users/" + userId))
                     .andExpect(status().isOk())
@@ -105,8 +122,38 @@ class UserProfileControllerTest {
         }
 
         @Test
+        void returns200_whenAdminLooksUpSomeoneElse() throws Exception {
+            when(userAdminRepo.findById(userId)).thenReturn(Optional.of(user));
+            authenticateAs("admin@example.com", Role.ROLE_ADMIN);
+
+            mockMvc.perform(get("/auth/users/" + userId))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.email", is("asha@example.com")));
+        }
+
+        @Test
+        void returns403_whenRegularUserLooksUpSomeoneElse() throws Exception {
+            when(userAdminRepo.findById(userId)).thenReturn(Optional.of(user));
+            authenticateAs("someone-else@example.com", Role.ROLE_USER);
+
+            mockMvc.perform(get("/auth/users/" + userId))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.success", is(false)));
+        }
+
+        @Test
+        void returns403_whenCallerIsAnonymous() throws Exception {
+            when(userAdminRepo.findById(userId)).thenReturn(Optional.of(user));
+            // no authenticateAs() — SecurityContext stays empty
+
+            mockMvc.perform(get("/auth/users/" + userId))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
         void neverExposesPassword() throws Exception {
             when(userAdminRepo.findById(userId)).thenReturn(Optional.of(user));
+            authenticateAs("asha@example.com", Role.ROLE_USER);
 
             mockMvc.perform(get("/auth/users/" + userId))
                     .andExpect(status().isOk())
@@ -117,6 +164,7 @@ class UserProfileControllerTest {
         void returns404_whenUserNotFound() throws Exception {
             UUID missingId = UUID.randomUUID();
             when(userAdminRepo.findById(missingId)).thenReturn(Optional.empty());
+            authenticateAs("admin@example.com", Role.ROLE_ADMIN);
 
             mockMvc.perform(get("/auth/users/" + missingId))
                     .andExpect(status().isNotFound())
@@ -128,8 +176,9 @@ class UserProfileControllerTest {
     class GetByEmail {
 
         @Test
-        void returns200_withProfile_whenEmailFound() throws Exception {
+        void returns200_withProfile_whenLookingUpSelf() throws Exception {
             when(userAdminRepo.findByEmail("asha@example.com")).thenReturn(user);
+            authenticateAs("asha@example.com", Role.ROLE_USER);
 
             mockMvc.perform(get("/auth/users/by-email/asha@example.com"))
                     .andExpect(status().isOk())
@@ -138,8 +187,19 @@ class UserProfileControllerTest {
         }
 
         @Test
+        void returns403_whenRegularUserLooksUpSomeoneElse() throws Exception {
+            when(userAdminRepo.findByEmail("asha@example.com")).thenReturn(user);
+            authenticateAs("someone-else@example.com", Role.ROLE_USER);
+
+            mockMvc.perform(get("/auth/users/by-email/asha@example.com"))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.success", is(false)));
+        }
+
+        @Test
         void neverExposesPassword_onEmailLookup() throws Exception {
             when(userAdminRepo.findByEmail("asha@example.com")).thenReturn(user);
+            authenticateAs("asha@example.com", Role.ROLE_USER);
 
             mockMvc.perform(get("/auth/users/by-email/asha@example.com"))
                     .andExpect(status().isOk())
@@ -149,6 +209,7 @@ class UserProfileControllerTest {
         @Test
         void returns404_whenEmailNotFound() throws Exception {
             when(userAdminRepo.findByEmail("missing@example.com")).thenReturn(null);
+            authenticateAs("admin@example.com", Role.ROLE_ADMIN);
 
             mockMvc.perform(get("/auth/users/by-email/missing@example.com"))
                     .andExpect(status().isNotFound())

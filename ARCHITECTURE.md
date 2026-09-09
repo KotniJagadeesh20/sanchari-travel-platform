@@ -121,6 +121,28 @@
                      hotel-service, bus-booking-service,
                      ride-share-service, travel-packages-service
 
+          ┌──────────────────────────────────────┐
+          │         travel-agent-service           │
+          │         port 8088                      │
+          │                                        │
+          │  /agent/**  (gateway-routed, JWT       │
+          │    required — same as any other        │
+          │    authenticated endpoint)              │
+          │                                        │
+          │  POST /agent/chat — Claude tool-use    │
+          │    loop (max 5 iterations); calls the  │
+          │    5 search tools below directly via   │
+          │    Eureka, bypassing the gateway for   │
+          │    those internal hops                  │
+          │                                        │
+          │  No database of its own — pure         │
+          │  orchestrator                           │
+          └──────────────────────────────────────┘
+                                 │ direct call, bypasses gateway
+                                 │ (search only — see ToolExecutor)
+                     destination/package search (travel-packages-service),
+                     hotel-service, bus-booking-service, ride-share-service
+
 ── Future Services (add a folder + pom module + gateway route) ──────────────
 
   restaurant-service   /restaurants/**   — table reservations by city/cuisine
@@ -156,7 +178,10 @@ This means only the gateway and auth-service need the JWT secret.
 **Important:** because bus-booking-service trusts these headers unconditionally,
 it must never be reachable directly from outside the cluster — only the gateway
 should have network access to it. In Kubernetes this is enforced with a
-NetworkPolicy; locally, just don't expose port 8082 publicly. If a client could
+NetworkPolicy; in `docker-compose.yml`, every domain service uses `expose`
+instead of `ports` for exactly this reason (`ports` publishes to the host,
+`expose` only makes the port reachable to other containers on `travel-net` —
+which is how the gateway and Eureka already reach it). If a client could
 reach bus-booking-service directly, they could forge `X-Authenticated-Email: admin@x.com`
 and `X-Authenticated-Authorities: ROLE_ADMIN` themselves.
 
@@ -222,7 +247,9 @@ Always start in this order:
 7. notification-service    (hotel-service calls it directly — see below)
 8. hotel-service            (depends on notification-service being reachable, though
                               booking still succeeds even if it isn't — see NotificationClientImpl)
-9. api-gateway              (needs Eureka entries to exist before routing; start last)
+9. travel-agent-service    (calls the search APIs of #4/#5/#6/#8 directly via Eureka —
+                              needs ANTHROPIC_API_KEY set, fails fast at startup if missing)
+10. api-gateway             (needs Eureka entries to exist before routing; start last)
 ```
 
 `docker-compose.yml` encodes this via `depends_on: condition: service_healthy`,
@@ -542,7 +569,7 @@ it likely becomes a computed aggregate rather than a stored value.
 
 ## Docker setup
 
-The platform runs via `docker-compose.yml` at the repo root. Eight images
+The platform runs via `docker-compose.yml` at the repo root. Nine images
 (one per Spring Boot module) plus one shared Postgres container plus
 Mailhog (fake SMTP, for notification-service's email channel).
 
@@ -586,7 +613,7 @@ and a freshly-started Eureka server needs a moment before
 uses `condition: service_healthy`, which blocks the dependent service from
 starting until the healthcheck actually passes. This mirrors the
 "Startup order" section above, but enforced by Docker instead of by a
-human running `mvn spring-boot:run` in the right sequence across five
+human running `mvn spring-boot:run` in the right sequence across nine
 terminals.
 
 **Environment-variable configuration, with localhost defaults.** Every
@@ -598,16 +625,19 @@ defaults), or running in `docker-compose` (the compose file injects
 container-network hostnames like `postgres` and `service-registry` as env
 vars, overriding the defaults). One build artifact, two environments.
 
-**`api-gateway`'s JWT secret is now env-var overridable**
-(`${JWT_SECRET:...}` in `application.yml`); auth-service's
-`JwtConstant.SECRET_KEY` is still a hardcoded Java `static final` constant
-— it's instantiated manually (`new JwtValidator()`, not a Spring bean) in
-several places, so converting it to `@Value` injection would need a wider
-refactor than the Docker setup alone called for. Both copies of the secret
-must match (the gateway signs nothing but validates everything; auth-service
-signs every token), so if you do override `JWT_SECRET` for the gateway in
-a real deployment, `JwtConstant.SECRET_KEY` needs to be updated to match
-or token validation will fail platform-wide.
+**JWT secret is fully externalized — both services, no hardcoded fallback.**
+Both `api-gateway` and `auth-service` read the signing/verification key from
+`jwt.secret` (bound to env var `JWT_SECRET`), with no default in either
+`application.yml`/`application.properties` — a missing `JWT_SECRET` fails
+startup instead of silently signing/validating with a value anyone reading
+this repo could see. `JwtValidator` in auth-service isn't a Spring bean
+(it's instantiated manually via `new JwtValidator(jwtSecret)` in
+`AppConfig`, not `addFilterBefore(new JwtValidator(), ...)`), so it takes
+the secret through its constructor rather than `@Value` field injection;
+`JwtProvider` is a real bean and takes it as a constructor parameter the
+normal way. Both copies resolve from the same env var, so they can't drift
+out of sync as long as whatever sets `JWT_SECRET` for one service sets it
+for both — see `.env.example` at the repo root for local/Docker setup.
 
 ---
 
@@ -627,8 +657,17 @@ automatic sync mechanism.
   across all three domain services. The column stays (it's a useful
   display hint) but is no longer treated as an identity source.
 - `UserProfileController` added to auth-service: `GET /auth/users/{id}`
-  and `GET /auth/users/by-email/{email}` — domain services can call
-  these endpoints when they need fresh, authoritative user data.
+  and `GET /auth/users/by-email/{email}` — originally intended so domain
+  services could call these when they need fresh, authoritative user data.
+  **Update:** no service actually calls them (there's no such client code
+  anywhere in the repo), and "any authenticated user" turned out to mean
+  any user could look up any *other* user's full profile — phone/dob/
+  gender/age included. Both endpoints are now restricted to the caller's
+  own record or ROLE_ADMIN (see `UserProfileController.isSelfOrAdmin`).
+  A real service-to-service caller, if one gets built, will need its own
+  credential (an internal shared key, same pattern as
+  `NOTIFICATION_INTERNAL_API_KEY`) rather than reusing a user's JWT for
+  cross-service calls it wasn't scoped for.
 - Auth-service `AppConfig` narrowed from blanket `/auth/** → permitAll`
   to individual path matchers for only the true public endpoints
   (register/login/refresh/logout). `/auth/users/**` now requires a JWT.
@@ -636,8 +675,11 @@ automatic sync mechanism.
   is not in the bypass list.
 
 **Pattern going forward:** store only `UUID userId` for FK integrity.
-Read `user_ref.email` for fast display. Call `GET /auth/users/{id}` when
-fresh data is required (e.g. before sending confirmation emails).
+Read `user_ref.email` for fast display. `GET /auth/users/{id}` exists for
+when fresh data is required (e.g. before sending confirmation emails), but
+given the ownership restriction above, a domain service calling it on a
+user's behalf would need to forward that user's own credential, not use
+one of its own — worth designing deliberately rather than backfilling.
 
 ---
 

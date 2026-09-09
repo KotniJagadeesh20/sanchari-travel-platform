@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: Build & unit/slice tests (all 9 modules)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      # `mvn test` deliberately, not `mvn verify`: travel-agent-service's
+      # *ClientIT.java tests are bound to the integration-test/verify
+      # phases via maven-failsafe-plugin and need the full docker-compose
+      # stack running (real Eureka + real domain services) to pass — they
+      # are not something a bare CI runner can satisfy. `test` runs every
+      # module's compile + unit/slice tests, which is fully self-contained
+      # (H2 for JPA slice tests, no external services, no env vars needed
+      # — every property this reactor requires with no default, e.g.
+      # jwt.secret, notification.internal.api-key, anthropic.api-key, has
+      # a test-only override under the relevant module's
+      # src/test/resources/application.properties, which Spring Boot's
+      # test classpath prefers over the main one automatically).
+      - name: Build and run unit/slice tests
+        run: mvn -B clean test
+
+  validate-compose:
+    name: Validate docker-compose.yml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # docker-compose.yml uses ${VAR:?message} for JWT_SECRET and
+      # NOTIFICATION_INTERNAL_API_KEY (no default — fails fast, see
+      # ARCHITECTURE.md's "Docker setup" section) — `docker compose config`
+      # resolves interpolation as part of validating syntax, so it needs
+      # *some* value for those two or it fails the same way `docker-compose
+      # up` would without a .env file. These are throwaway CI-only values,
+      # never used to run anything real.
+      - name: Validate compose file syntax
+        run: |
+          export JWT_SECRET=ci-placeholder-not-a-real-secret
+          export NOTIFICATION_INTERNAL_API_KEY=ci-placeholder-not-a-real-key
+          docker compose config --quiet

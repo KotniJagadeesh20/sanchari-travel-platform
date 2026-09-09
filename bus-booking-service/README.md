@@ -103,6 +103,10 @@ Needs `travel_bus_booking_db` to exist first. Start after service-registry.
 
 http://localhost:8082/swagger-ui/index.html
 
+Only reachable when running via `mvn spring-boot:run` — under
+`docker-compose`, this port isn't published to the host (see root
+README's API documentation section).
+
 ## Tests
 
 `BusServiceImplTest`, `DriverServiceImplTest`, `BookingdetailsServiceImplTest`,

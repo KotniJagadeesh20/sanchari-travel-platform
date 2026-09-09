@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 
 import javax.crypto.SecretKey;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,15 +18,17 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
-import org.springframework.beans.factory.annotation.Autowired;
-
 @Service
 public class JwtProvider {
 
-    @Autowired
-    private UserAdminRepository userAdminRepo;
+    private final UserAdminRepository userAdminRepo;
+    private final SecretKey key;
 
-    private SecretKey key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes());
+    public JwtProvider(UserAdminRepository userAdminRepo,
+                        @Value("${jwt.secret}") String jwtSecret) {
+        this.userAdminRepo = userAdminRepo;
+        this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+    }
 
     /**
      * Generates a signed JWT containing:

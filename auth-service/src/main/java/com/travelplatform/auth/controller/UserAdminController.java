@@ -1,14 +1,18 @@
 package com.travelplatform.auth.controller;
 
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import com.travelplatform.auth.dto.UserProfileResponse;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -22,6 +26,7 @@ import com.travelplatform.auth.dto.RefreshTokenRequest;
 import com.travelplatform.auth.dto.RegisterRequest;
 import com.travelplatform.auth.dto.TokenRefreshResponse;
 import com.travelplatform.auth.enums.Role;
+import com.travelplatform.auth.repository.UserAdminRepository;
 import com.travelplatform.auth.service.AuthService;
 import com.travelplatform.auth.service.AuthService.AuthResult;
 
@@ -33,11 +38,15 @@ import com.travelplatform.auth.service.AuthService.AuthResult;
 @RequestMapping("/auth")
 @Validated
 @Tag(name = "Authentication",
-     description = "Register, login, token refresh, and logout — no JWT required")
+     description = "Register, login, token refresh, and logout. No JWT required, except "
+             + "registerAdmin once the first admin account exists (see its own docs).")
 public class UserAdminController {
 
     @Autowired
     private AuthService authService;
+
+    @Autowired
+    private UserAdminRepository userAdminRepo;
 
     // ─── Register ────────────────────────────────────────────────────────────
 
@@ -56,14 +65,29 @@ public class UserAdminController {
     }
 
     @Operation(summary = "Register an admin",
-               description = "Creates a ROLE_ADMIN account. Returns an access token + refresh token.")
+               description = "Creates a ROLE_ADMIN account. Reachable without a token ONLY when no admin "
+                       + "account exists yet in the system (first-run bootstrap) — once at least one admin "
+                       + "exists, this requires a valid ROLE_ADMIN bearer token, same as any other "
+                       + "admin-only endpoint. This path stays off the gateway/security-config public-path "
+                       + "list intentionally so a caller's Authorization header (if any) still reaches here "
+                       + "and gets parsed into the request's authorities before this check runs.")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Admin account created"),
-        @ApiResponse(responseCode = "400", description = "Email already in use or validation failed")
+        @ApiResponse(responseCode = "400", description = "Email already in use or validation failed"),
+        @ApiResponse(responseCode = "403",
+                description = "An admin already exists and the caller is not an authenticated admin")
     })
     @PostMapping("/registerAdmin")
-    public ResponseEntity<UserAdminResponse> registerAdmin(
+    public ResponseEntity<?> registerAdmin(
             @Validated @RequestBody RegisterRequest request) {
+
+        if (userAdminRepo.existsByRole(Role.ROLE_ADMIN) && !callerIsAdmin()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                    "success", false,
+                    "message", "Admin accounts already exist. Registering another admin requires "
+                            + "authenticating as an existing admin."));
+        }
+
         return toAuthResponse(authService.register(request, Role.ROLE_ADMIN), HttpStatus.CREATED,
                 "Admin Account Created Successfully");
     }
@@ -117,6 +141,21 @@ public class UserAdminController {
     }
 
     // ─── Helper ──────────────────────────────────────────────────────────────
+
+    /**
+     * True only if the current request carried a valid JWT with ROLE_ADMIN.
+     * JwtValidator populates the SecurityContext from the Authorization header
+     * on every request, including ones on the security-config permitAll list —
+     * permitAll only means "don't reject if there's no token", it doesn't stop
+     * a present token from being parsed. That's what lets an existing admin's
+     * token reach this check even though the endpoint itself isn't gated at
+     * the filter-chain level.
+     */
+    private boolean callerIsAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals(Role.ROLE_ADMIN.name()));
+    }
 
     private ResponseEntity<UserAdminResponse> toAuthResponse(
             AuthResult result, HttpStatus status, String message) {

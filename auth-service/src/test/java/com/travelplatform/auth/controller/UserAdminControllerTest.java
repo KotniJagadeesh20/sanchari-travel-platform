@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.UUID;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -27,6 +32,7 @@ import com.travelplatform.auth.enums.Role;
 import com.travelplatform.auth.exception.EmailAlreadyExistsException;
 import com.travelplatform.auth.exception.GlobalExceptionHandler;
 import com.travelplatform.auth.exception.TokenRefreshException;
+import com.travelplatform.auth.repository.UserAdminRepository;
 import com.travelplatform.auth.service.AuthService;
 import com.travelplatform.auth.service.AuthService.AuthResult;
 
@@ -42,6 +48,9 @@ class UserAdminControllerTest {
 
     @Mock
     private AuthService authService;
+
+    @Mock
+    private UserAdminRepository userAdminRepo;
 
     @InjectMocks
     private UserAdminController controller;
@@ -72,6 +81,20 @@ class UserAdminControllerTest {
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setValidator(new LocalValidatorFactoryBean())
                 .build();
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        // registerAdmin reads SecurityContextHolder directly (see callerIsAdmin()) —
+        // standalone MockMvc doesn't run the real filter chain, so tests set this
+        // manually and must clean up after themselves.
+        SecurityContextHolder.clearContext();
+    }
+
+    private static void authenticateAs(Role role) {
+        Authentication auth = new UsernamePasswordAuthenticationToken(
+                "someone@example.com", null, AuthorityUtils.createAuthorityList(role.name()));
+        SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -174,19 +197,70 @@ class UserAdminControllerTest {
     @Nested
     class RegisterAdmin {
 
-        @Test
-        void delegatesToAuthService_withRoleAdmin() throws Exception {
+        private AuthResult adminResult;
+
+        @BeforeEach
+        void setUp() {
             UserAdmin admin = new UserAdmin();
             admin.setId(UUID.randomUUID());
             admin.setRole(Role.ROLE_ADMIN);
-            AuthResult result = new AuthResult("access.jwt", UUID.randomUUID(), admin);
+            adminResult = new AuthResult("access.jwt", UUID.randomUUID(), admin);
+        }
 
-            when(authService.register(any(), eq(Role.ROLE_ADMIN))).thenReturn(result);
+        @Test
+        void returns201_whenNoAdminExistsYet_evenWithoutAuth() throws Exception {
+            // First-run bootstrap: nobody is an admin yet, so nobody can be
+            // authenticated as one — this must be allowed anonymously.
+            when(userAdminRepo.existsByRole(Role.ROLE_ADMIN)).thenReturn(false);
+            when(authService.register(any(), eq(Role.ROLE_ADMIN))).thenReturn(adminResult);
 
             mockMvc.perform(post("/auth/registerAdmin")
                             .contentType("application/json")
                             .content(VALID_REGISTER_JSON))
-                    .andExpect(status().isCreated());
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.success", is(true)));
+
+            verify(authService).register(any(), eq(Role.ROLE_ADMIN));
+        }
+
+        @Test
+        void returns403_whenAdminExists_andCallerIsAnonymous() throws Exception {
+            when(userAdminRepo.existsByRole(Role.ROLE_ADMIN)).thenReturn(true);
+
+            mockMvc.perform(post("/auth/registerAdmin")
+                            .contentType("application/json")
+                            .content(VALID_REGISTER_JSON))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.success", is(false)));
+
+            verifyNoInteractions(authService);
+        }
+
+        @Test
+        void returns403_whenAdminExists_andCallerIsRegularUser() throws Exception {
+            when(userAdminRepo.existsByRole(Role.ROLE_ADMIN)).thenReturn(true);
+            authenticateAs(Role.ROLE_USER);
+
+            mockMvc.perform(post("/auth/registerAdmin")
+                            .contentType("application/json")
+                            .content(VALID_REGISTER_JSON))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.success", is(false)));
+
+            verifyNoInteractions(authService);
+        }
+
+        @Test
+        void returns201_whenAdminExists_andCallerIsAuthenticatedAdmin() throws Exception {
+            when(userAdminRepo.existsByRole(Role.ROLE_ADMIN)).thenReturn(true);
+            when(authService.register(any(), eq(Role.ROLE_ADMIN))).thenReturn(adminResult);
+            authenticateAs(Role.ROLE_ADMIN);
+
+            mockMvc.perform(post("/auth/registerAdmin")
+                            .contentType("application/json")
+                            .content(VALID_REGISTER_JSON))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.success", is(true)));
 
             verify(authService).register(any(), eq(Role.ROLE_ADMIN));
         }
