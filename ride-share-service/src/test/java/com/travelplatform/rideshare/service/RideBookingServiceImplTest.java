@@ -157,13 +157,14 @@ class RideBookingServiceImplTest {
         @Test
         void approvesBooking_andDeductsSeats_whenCallerIsDriver() {
             when(bookingRepo.findById(bookingId)).thenReturn(Optional.of(pendingBooking));
-            when(rideRepo.save(any(Ride.class))).thenAnswer(i -> i.getArgument(0));
+            // Atomic conditional UPDATE (see RideRepository.decrementAvailableSeats) — 1 = success.
+            when(rideRepo.decrementAvailableSeats(rideId, 2)).thenReturn(1);
             when(bookingRepo.save(any(RideBooking.class))).thenAnswer(i -> i.getArgument(0));
 
             RideBooking result = bookingService.approveBooking(bookingId, driver.getId());
 
             assertEquals(BookingStatus.APPROVED, result.getStatus());
-            assertEquals(2, ride.getAvailableSeats(), "4 - 2 booked = 2 remaining");
+            verify(rideRepo).decrementAvailableSeats(rideId, 2);
         }
 
         @Test
@@ -174,7 +175,7 @@ class RideBookingServiceImplTest {
             assertThrows(UnauthorizedRideActionException.class,
                     () -> bookingService.approveBooking(bookingId, strangerId));
 
-            verify(rideRepo, never()).save(any());
+            verify(rideRepo, never()).decrementAvailableSeats(any(), anyInt());
         }
 
         @Test
@@ -190,6 +191,10 @@ class RideBookingServiceImplTest {
         void throwsInsufficientSeats_whenSeatsConsumedByAnotherApprovalConcurrently() {
             ride.setAvailableSeats(1); // another approval already took most seats
             when(bookingRepo.findById(bookingId)).thenReturn(Optional.of(pendingBooking));
+            // 0 = the atomic conditional UPDATE's WHERE clause didn't match (not enough seats
+            // left) — this is the concurrency-safe replacement for the old stale-read check.
+            when(rideRepo.decrementAvailableSeats(rideId, 2)).thenReturn(0);
+            when(rideRepo.findById(rideId)).thenReturn(Optional.of(ride));
 
             assertThrows(InsufficientSeatsException.class,
                     () -> bookingService.approveBooking(bookingId, driver.getId()));
@@ -269,15 +274,14 @@ class RideBookingServiceImplTest {
         @Test
         void cancelsApprovedBooking_andReturnsSeats() {
             booking.setStatus(BookingStatus.APPROVED);
-            ride.setAvailableSeats(2); // seats were deducted when approved
             when(bookingRepo.findById(bookingId)).thenReturn(Optional.of(booking));
-            when(rideRepo.save(any(Ride.class))).thenAnswer(i -> i.getArgument(0));
             when(bookingRepo.save(any(RideBooking.class))).thenAnswer(i -> i.getArgument(0));
 
             bookingService.cancelBooking(bookingId, passenger.getId());
 
             assertEquals(BookingStatus.CANCELLED, booking.getStatus());
-            assertEquals(4, ride.getAvailableSeats(), "2 returned seats: 2 + 2 = 4");
+            // Seat release is now one atomic UPDATE — see RideRepository.incrementAvailableSeats().
+            verify(rideRepo).incrementAvailableSeats(rideId, 2);
         }
 
         @Test
@@ -289,7 +293,7 @@ class RideBookingServiceImplTest {
             bookingService.cancelBooking(bookingId, passenger.getId());
 
             assertEquals(BookingStatus.CANCELLED, booking.getStatus());
-            verify(rideRepo, never()).save(any());
+            verify(rideRepo, never()).incrementAvailableSeats(any(), anyInt());
         }
 
         @Test

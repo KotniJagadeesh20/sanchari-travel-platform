@@ -3,6 +3,7 @@ package com.travelplatform.rideshare.repository;
 import com.travelplatform.rideshare.entity.Ride;
 import com.travelplatform.rideshare.enums.RideStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -33,4 +34,22 @@ public interface RideRepository extends JpaRepository<Ride, UUID> {
             @Param("travelDate") LocalDate travelDate, @Param("status") RideStatus status);
 
     List<Ride> findByDriverId(UUID driverId);
+
+    /**
+     * Atomic, concurrency-safe seat reservation — same pattern as
+     * PackageDepartureRepository.decrementAvailableSlots(). The WHERE clause
+     * and the decrement happen as one UPDATE statement, so two concurrent
+     * approvals against the same ride can't both read the same
+     * availableSeats and both succeed. Returns rows updated: 1 on success,
+     * 0 if there weren't enough seats left (or the id doesn't exist).
+     */
+    @Modifying
+    @Query("UPDATE Ride r SET r.availableSeats = r.availableSeats - :count " +
+            "WHERE r.id = :id AND r.availableSeats >= :count")
+    int decrementAvailableSeats(@Param("id") UUID id, @Param("count") int count);
+
+    /** Atomic release of previously-committed seats (cancellation of an APPROVED booking). */
+    @Modifying
+    @Query("UPDATE Ride r SET r.availableSeats = r.availableSeats + :count WHERE r.id = :id")
+    int incrementAvailableSeats(@Param("id") UUID id, @Param("count") int count);
 }

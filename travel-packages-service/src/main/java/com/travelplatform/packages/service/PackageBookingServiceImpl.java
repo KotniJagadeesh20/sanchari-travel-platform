@@ -51,15 +51,20 @@ public class PackageBookingServiceImpl implements PackageBookingService {
 
         int travelersCount = travelers.size();
 
-        // Rule: requested travelers must not exceed this departure's own availability.
-        if (travelersCount > departure.getAvailableSlots()) {
-            throw new InsufficientSlotsException(travelersCount, departure.getAvailableSlots());
-        }
-
         // Auto-confirm: unlike ride-share's approval flow, package bookings
-        // confirm immediately, so slots are deducted right away.
-        departure.setAvailableSlots(departure.getAvailableSlots() - travelersCount);
-        departureRepo.save(departure);
+        // confirm immediately, so slots are deducted right away. Decrement is
+        // one atomic conditional UPDATE (see PackageDepartureRepository) rather
+        // than read-check-write, so two concurrent bookings against the same
+        // departure can't both pass a stale availability check and overbook it.
+        int updated = departureRepo.decrementAvailableSlots(departureId, travelersCount);
+        if (updated == 0) {
+            // Someone else's concurrent booking (or an earlier read) already
+            // consumed the slots — re-read for an accurate count in the error.
+            int currentAvailable = departureRepo.findById(departureId)
+                    .map(PackageDeparture::getAvailableSlots)
+                    .orElse(0);
+            throw new InsufficientSlotsException(travelersCount, currentAvailable);
+        }
 
         PackageBooking booking = new PackageBooking();
         booking.setDeparture(departure);
@@ -127,9 +132,7 @@ public class PackageBookingServiceImpl implements PackageBookingService {
 
     private void doCancel(PackageBooking booking, String reason) {
         if (booking.getStatus() == BookingStatus.CONFIRMED) {
-            PackageDeparture departure = booking.getDeparture();
-            departure.setAvailableSlots(departure.getAvailableSlots() + booking.getTravelersCount());
-            departureRepo.save(departure);
+            departureRepo.incrementAvailableSlots(booking.getDeparture().getId(), booking.getTravelersCount());
         }
 
         booking.setStatus(BookingStatus.CANCELLED);

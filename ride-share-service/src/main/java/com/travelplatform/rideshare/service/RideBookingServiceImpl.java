@@ -88,12 +88,16 @@ public class RideBookingServiceImpl implements RideBookingService {
         assertIsDriver(ride, callerId, "approve");
         assertIsPending(booking);
 
-        if (booking.getSeatsBooked() > ride.getAvailableSeats()) {
-            throw new InsufficientSeatsException(booking.getSeatsBooked(), ride.getAvailableSeats());
+        // Atomic conditional UPDATE (see RideRepository.decrementAvailableSeats)
+        // instead of read-check-write, so two concurrent approvals against the
+        // same ride can't both read the same availableSeats and both commit.
+        int updated = rideRepo.decrementAvailableSeats(ride.getId(), booking.getSeatsBooked());
+        if (updated == 0) {
+            int currentAvailable = rideRepo.findById(ride.getId())
+                    .map(Ride::getAvailableSeats)
+                    .orElse(0);
+            throw new InsufficientSeatsException(booking.getSeatsBooked(), currentAvailable);
         }
-
-        ride.setAvailableSeats(ride.getAvailableSeats() - booking.getSeatsBooked());
-        rideRepo.save(ride);
 
         booking.setStatus(BookingStatus.APPROVED);
         RideBooking saved = bookingRepo.save(booking);
@@ -143,9 +147,7 @@ public class RideBookingServiceImpl implements RideBookingService {
 
         // If the booking had already consumed seats (APPROVED), give them back.
         if (booking.getStatus() == BookingStatus.APPROVED) {
-            Ride ride = booking.getRide();
-            ride.setAvailableSeats(ride.getAvailableSeats() + booking.getSeatsBooked());
-            rideRepo.save(ride);
+            rideRepo.incrementAvailableSeats(booking.getRide().getId(), booking.getSeatsBooked());
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
