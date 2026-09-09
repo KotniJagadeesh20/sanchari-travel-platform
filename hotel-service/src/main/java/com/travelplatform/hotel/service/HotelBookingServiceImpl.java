@@ -49,16 +49,18 @@ public class HotelBookingServiceImpl implements HotelBookingService {
             throw new RoomNotFoundException(request.getRoomId());
         }
 
-        // Rule: a room type can only be booked while it has spare inventory.
-        // See Room.availableRooms Javadoc for the "one pool per room type" caveat.
-        if (room.getAvailableRooms() <= 0) {
+        // Atomic conditional UPDATE (see RoomRepository.decrementAvailableRooms)
+        // instead of read-check-write, so two concurrent bookings against the
+        // same room can't both read the same availableRooms and both succeed.
+        // See Room.availableRooms Javadoc for the "one pool per room type,
+        // not date-aware" caveat — that's a separate limitation from the
+        // concurrency race this closes.
+        int updated = roomRepo.decrementAvailableRooms(room.getId());
+        if (updated == 0) {
             throw new RoomNotAvailableException(room.getId());
         }
 
         long nights = ChronoUnit.DAYS.between(request.getCheckInDate(), request.getCheckOutDate());
-
-        room.setAvailableRooms(room.getAvailableRooms() - 1);
-        roomRepo.save(room);
 
         HotelBooking booking = new HotelBooking();
         booking.setUserId(userId);
@@ -103,9 +105,7 @@ public class HotelBookingServiceImpl implements HotelBookingService {
             return; // already terminal — cancelling again is a harmless no-op
         }
 
-        Room room = booking.getRoom();
-        room.setAvailableRooms(room.getAvailableRooms() + 1);
-        roomRepo.save(room);
+        roomRepo.incrementAvailableRooms(booking.getRoom().getId());
 
         booking.setBookingStatus(BookingStatus.CANCELLED);
         bookingRepo.save(booking);

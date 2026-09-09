@@ -82,7 +82,9 @@ class PackageBookingServiceImplTest {
         @Test
         void createsBooking_confirmedImmediately_andDeductsSlotsFromTheDeparture() {
             when(departureRepo.findById(departureId)).thenReturn(Optional.of(departure));
-            when(departureRepo.save(any(PackageDeparture.class))).thenAnswer(i -> i.getArgument(0));
+            // Slot deduction is now one atomic conditional UPDATE, not read-check-write —
+            // see PackageDepartureRepository.decrementAvailableSlots(). 1 = success.
+            when(departureRepo.decrementAvailableSlots(departureId, 2)).thenReturn(1);
             when(bookingRepo.save(any(PackageBooking.class))).thenAnswer(i -> i.getArgument(0));
 
             PackageBooking booking = bookingService.bookPackage(departureId, twoTravelers, traveler);
@@ -92,13 +94,14 @@ class PackageBookingServiceImplTest {
             assertEquals(2, booking.getTravelersCount());
             assertEquals(2, booking.getTravelers().size());
             assertEquals(31998.0, booking.getTotalAmount());
-            assertEquals(18, departure.getAvailableSlots(), "Slots deducted immediately since booking is confirmed, not pending");
+            verify(departureRepo).decrementAvailableSlots(departureId, 2);
         }
 
         @Test
         void throwsInsufficientSlots_whenRequestExceedsDepartureAvailability() {
-            departure.setAvailableSlots(1);
             when(departureRepo.findById(departureId)).thenReturn(Optional.of(departure));
+            // 0 = the atomic conditional UPDATE's WHERE clause didn't match (not enough slots).
+            when(departureRepo.decrementAvailableSlots(departureId, 2)).thenReturn(0);
 
             assertThrows(InsufficientSlotsException.class,
                     () -> bookingService.bookPackage(departureId, twoTravelers, traveler));
@@ -156,16 +159,16 @@ class PackageBookingServiceImplTest {
         @Test
         void cancelsConfirmedBooking_andReturnsSlotsToTheDeparture() {
             booking.setStatus(BookingStatus.CONFIRMED);
-            departure.setAvailableSlots(18); // 2 were deducted when confirmed
             when(bookingRepo.findById(bookingId)).thenReturn(Optional.of(booking));
-            when(departureRepo.save(any(PackageDeparture.class))).thenAnswer(i -> i.getArgument(0));
             when(bookingRepo.save(any(PackageBooking.class))).thenAnswer(i -> i.getArgument(0));
 
             bookingService.cancelBooking(bookingId, traveler.getId(), "Change of plans");
 
             assertEquals(BookingStatus.CANCELLED, booking.getStatus());
             assertEquals("Change of plans", booking.getCancellationReason());
-            assertEquals(20, departure.getAvailableSlots(), "2 returned: 18 + 2 = 20");
+            // Slot release is now one atomic UPDATE — see
+            // PackageDepartureRepository.incrementAvailableSlots().
+            verify(departureRepo).incrementAvailableSlots(departureId, 2);
         }
 
         @Test
@@ -178,7 +181,7 @@ class PackageBookingServiceImplTest {
                     () -> bookingService.cancelBooking(bookingId, strangerId, null));
 
             verify(bookingRepo, never()).save(any());
-            verify(departureRepo, never()).save(any());
+            verify(departureRepo, never()).incrementAvailableSlots(any(), anyInt());
         }
 
         @Test
@@ -209,22 +212,19 @@ class PackageBookingServiceImplTest {
 
         @Test
         void cancelsBooking_withNoOwnershipCheck_andReturnsSlots() {
-            departure.setAvailableSlots(18);
             when(bookingRepo.findById(bookingId)).thenReturn(Optional.of(booking));
-            when(departureRepo.save(any(PackageDeparture.class))).thenAnswer(i -> i.getArgument(0));
             when(bookingRepo.save(any(PackageBooking.class))).thenAnswer(i -> i.getArgument(0));
 
             bookingService.cancelBookingAsAdmin(bookingId, "Trip called off due to weather");
 
             assertEquals(BookingStatus.CANCELLED, booking.getStatus());
             assertEquals("Trip called off due to weather", booking.getCancellationReason());
-            assertEquals(20, departure.getAvailableSlots());
+            verify(departureRepo).incrementAvailableSlots(departureId, 2);
         }
 
         @Test
         void notifiesTraveler_ofOperatorCancellation() {
             when(bookingRepo.findById(bookingId)).thenReturn(Optional.of(booking));
-            when(departureRepo.save(any(PackageDeparture.class))).thenAnswer(i -> i.getArgument(0));
             when(bookingRepo.save(any(PackageBooking.class))).thenAnswer(i -> i.getArgument(0));
 
             bookingService.cancelBookingAsAdmin(bookingId, "Low bookings");

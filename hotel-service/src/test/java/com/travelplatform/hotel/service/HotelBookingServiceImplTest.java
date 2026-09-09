@@ -75,7 +75,8 @@ class HotelBookingServiceImplTest {
         void createsBooking_confirmedImmediately_andDecrementsAvailability() {
             when(hotelService.getHotelById(hotel.getId())).thenReturn(hotel);
             when(roomRepo.findById(room.getId())).thenReturn(Optional.of(room));
-            when(roomRepo.save(any(Room.class))).thenAnswer(i -> i.getArgument(0));
+            // Atomic conditional UPDATE (see RoomRepository.decrementAvailableRooms) — 1 = success.
+            when(roomRepo.decrementAvailableRooms(room.getId())).thenReturn(1);
             when(bookingRepo.save(any(HotelBooking.class))).thenAnswer(i -> i.getArgument(0));
 
             HotelBooking booking = bookingService.bookHotel(request, userId, "traveler@example.com");
@@ -83,14 +84,15 @@ class HotelBookingServiceImplTest {
             assertEquals(BookingStatus.CONFIRMED, booking.getBookingStatus(),
                     "Hotel bookings auto-confirm immediately — no payment step yet");
             assertEquals(3000.0, booking.getTotalAmount(), "3 nights * 1000/night");
-            assertEquals(4, room.getAvailableRooms(), "Availability decremented by one on booking");
+            verify(roomRepo).decrementAvailableRooms(room.getId());
         }
 
         @Test
         void throwsRoomNotAvailable_whenNoInventoryLeft() {
-            room.setAvailableRooms(0);
             when(hotelService.getHotelById(hotel.getId())).thenReturn(hotel);
             when(roomRepo.findById(room.getId())).thenReturn(Optional.of(room));
+            // 0 = the atomic conditional UPDATE's WHERE clause didn't match (no inventory left).
+            when(roomRepo.decrementAvailableRooms(room.getId())).thenReturn(0);
 
             assertThrows(RoomNotAvailableException.class, () -> bookingService.bookHotel(request, userId, "traveler@example.com"));
             verify(bookingRepo, never()).save(any());
@@ -110,7 +112,6 @@ class HotelBookingServiceImplTest {
 
         @Test
         void restoresAvailability_andMarksCancelled() {
-            room.setAvailableRooms(4);
             HotelBooking booking = new HotelBooking();
             booking.setId(UUID.randomUUID());
             booking.setUserId(userId);
@@ -118,13 +119,14 @@ class HotelBookingServiceImplTest {
             booking.setBookingStatus(BookingStatus.CONFIRMED);
 
             when(bookingRepo.findById(booking.getId())).thenReturn(Optional.of(booking));
-            when(roomRepo.save(any(Room.class))).thenAnswer(i -> i.getArgument(0));
             when(bookingRepo.save(any(HotelBooking.class))).thenAnswer(i -> i.getArgument(0));
 
             bookingService.cancelBooking(booking.getId(), userId, "traveler@example.com");
 
             assertEquals(BookingStatus.CANCELLED, booking.getBookingStatus());
-            assertEquals(5, room.getAvailableRooms(), "Availability restored on cancel");
+            // Availability release is now one atomic UPDATE — see
+            // RoomRepository.incrementAvailableRooms().
+            verify(roomRepo).incrementAvailableRooms(room.getId());
         }
 
         @Test
@@ -139,7 +141,7 @@ class HotelBookingServiceImplTest {
 
             assertThrows(UnauthorizedBookingActionException.class,
                     () -> bookingService.cancelBooking(booking.getId(), userId, "traveler@example.com"));
-            verify(roomRepo, never()).save(any());
+            verify(roomRepo, never()).incrementAvailableRooms(any());
         }
     }
 
