@@ -75,7 +75,6 @@ class HotelBookingServiceImplTest {
         void createsBooking_confirmedImmediately_forAvailableDateRange() {
             when(hotelService.getHotelById(hotel.getId())).thenReturn(hotel);
             when(roomRepo.findForUpdateById(room.getId())).thenReturn(Optional.of(room));
-            when(roomRepo.save(any(Room.class))).thenAnswer(i -> i.getArgument(0));
             when(bookingRepo.save(any(HotelBooking.class))).thenAnswer(i -> i.getArgument(0));
 
             HotelBooking booking = bookingService.bookHotel(request, userId, "traveler@example.com");
@@ -119,7 +118,6 @@ class HotelBookingServiceImplTest {
             booking.setBookingStatus(BookingStatus.CONFIRMED);
 
             when(bookingRepo.findById(booking.getId())).thenReturn(Optional.of(booking));
-            when(roomRepo.save(any(Room.class))).thenAnswer(i -> i.getArgument(0));
             when(bookingRepo.save(any(HotelBooking.class))).thenAnswer(i -> i.getArgument(0));
 
             bookingService.cancelBooking(booking.getId(), userId, "traveler@example.com");
