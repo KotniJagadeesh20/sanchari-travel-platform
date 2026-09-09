@@ -34,6 +34,14 @@ public class RideBooking {
     @Column(nullable = false)
     private LocalDateTime bookingTime;
 
+    /**
+     * Whether this booking has already been reflected in Ride.availableSeats.
+     * The false default makes deployments safe for PENDING rows created before
+     * pending bookings began reserving seats.
+     */
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private Boolean seatsReserved = false;
+
     public RideBooking() {}
 
     public UUID getId() { return id; }
@@ -56,4 +64,7 @@ public class RideBooking {
 
     public LocalDateTime getBookingTime() { return bookingTime; }
     public void setBookingTime(LocalDateTime bookingTime) { this.bookingTime = bookingTime; }
+
+    public Boolean getSeatsReserved() { return seatsReserved; }
+    public void setSeatsReserved(Boolean seatsReserved) { this.seatsReserved = seatsReserved; }
 }

@@ -8,6 +8,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.travelplatform.auth.service.CustomDetailsImpl;
 import com.travelplatform.auth.config.JwtProvider;
@@ -89,9 +90,10 @@ public class AuthServiceImpl implements AuthService {
     // ─── Refresh ─────────────────────────────────────────────────────────────
 
     @Override
+    @Transactional(noRollbackFor = TokenRefreshException.class)
     public TokenRefreshResponse refresh(RefreshTokenRequest request) {
 
-        RefreshToken existing = refreshTokenService.verifyValid(request.getRefreshToken());
+        RefreshToken existing = refreshTokenService.verifyValidForUpdate(request.getRefreshToken());
 
         UserAdmin user = existing.getUser();
         Authentication auth = buildAuthentication(user.getEmail());

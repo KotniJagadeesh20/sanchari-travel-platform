@@ -25,6 +25,7 @@ import com.travelplatform.auth.dto.LoginRequest;
 import com.travelplatform.auth.dto.RefreshTokenRequest;
 import com.travelplatform.auth.dto.RegisterRequest;
 import com.travelplatform.auth.dto.TokenRefreshResponse;
+import com.travelplatform.auth.dto.UserProfileResponse;
 import com.travelplatform.auth.enums.Role;
 import com.travelplatform.auth.repository.UserAdminRepository;
 import com.travelplatform.auth.service.AuthService;

@@ -36,12 +36,9 @@ public class Room {
     private Integer totalRooms;
 
     /**
-     * Rooms of this type not currently held by an active (PENDING/CONFIRMED/CHECKED_IN)
-     * booking. Decremented on booking creation, restored on cancellation — mirrors
-     * TravelPackage.availableSlots. This is a simple counter, not a date-range calendar:
-     * it assumes one inventory pool per room type rather than per-night availability.
-     * Swap to a date-indexed availability table if the business ever needs true
-     * per-night overbooking protection across overlapping stays.
+     * Legacy snapshot retained for API compatibility. Booking availability is
+     * calculated from totalRooms and overlapping active bookings for the requested
+     * date range; this value is no longer mutated by booking or cancellation.
      */
     @Column(nullable = false)
     private Integer availableRooms;

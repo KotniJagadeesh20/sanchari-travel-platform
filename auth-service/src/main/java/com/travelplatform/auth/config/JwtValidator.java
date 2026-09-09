@@ -35,9 +35,12 @@ public class JwtValidator extends OncePerRequestFilter{
 			throws ServletException, IOException {
 			String jwt = request.getHeader(JwtConstant.JWT_HEADER);
 			
-			if(jwt!=null) {
-				jwt = jwt.substring(7);
+			if (jwt != null) {
 				try {
+					if (jwt.length() <= 7 || !jwt.regionMatches(true, 0, "Bearer ", 0, 7)) {
+						throw new BadCredentialsException("Malformed Authorization header");
+					}
+					jwt = jwt.substring(7);
 					Claims claims = Jwts.parserBuilder().setSigningKey(key).build()
 							.parseClaimsJws(jwt).getBody();
 					
@@ -67,4 +70,3 @@ public class JwtValidator extends OncePerRequestFilter{
 	}
 
 }
-

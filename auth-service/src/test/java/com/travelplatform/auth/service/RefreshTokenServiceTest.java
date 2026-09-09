@@ -151,6 +151,18 @@ class RefreshTokenServiceTest {
 		verify(refreshTokenRepository).delete(validToken);
 	}
 
+	@Test
+	void verifyValidForUpdate_usesLockedRepositoryLookup() {
+		when(refreshTokenRepository.findForUpdateByToken(tokenValue))
+				.thenReturn(Optional.of(validToken));
+
+		RefreshToken result = refreshTokenService.verifyValidForUpdate(tokenValue);
+
+		assertSame(validToken, result);
+		verify(refreshTokenRepository).findForUpdateByToken(tokenValue);
+		verify(refreshTokenRepository, never()).findByToken(tokenValue);
+	}
+
 	// ─── revoke ──────────────────────────────────────────────────────────
 
 	@Test

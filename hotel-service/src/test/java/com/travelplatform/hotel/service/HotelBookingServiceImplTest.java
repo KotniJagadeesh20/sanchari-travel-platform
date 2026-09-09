@@ -72,10 +72,9 @@ class HotelBookingServiceImplTest {
     class BookHotel {
 
         @Test
-        void createsBooking_confirmedImmediately_andDecrementsAvailability() {
+        void createsBooking_confirmedImmediately_forAvailableDateRange() {
             when(hotelService.getHotelById(hotel.getId())).thenReturn(hotel);
-            when(roomRepo.findById(room.getId())).thenReturn(Optional.of(room));
-            when(roomRepo.save(any(Room.class))).thenAnswer(i -> i.getArgument(0));
+            when(roomRepo.findForUpdateById(room.getId())).thenReturn(Optional.of(room));
             when(bookingRepo.save(any(HotelBooking.class))).thenAnswer(i -> i.getArgument(0));
 
             HotelBooking booking = bookingService.bookHotel(request, userId, "traveler@example.com");
@@ -83,14 +82,15 @@ class HotelBookingServiceImplTest {
             assertEquals(BookingStatus.CONFIRMED, booking.getBookingStatus(),
                     "Hotel bookings auto-confirm immediately — no payment step yet");
             assertEquals(3000.0, booking.getTotalAmount(), "3 nights * 1000/night");
-            assertEquals(4, room.getAvailableRooms(), "Availability decremented by one on booking");
+            assertEquals(5, room.getAvailableRooms(), "Date-range bookings do not consume all future inventory");
         }
 
         @Test
         void throwsRoomNotAvailable_whenNoInventoryLeft() {
-            room.setAvailableRooms(0);
             when(hotelService.getHotelById(hotel.getId())).thenReturn(hotel);
-            when(roomRepo.findById(room.getId())).thenReturn(Optional.of(room));
+            when(roomRepo.findForUpdateById(room.getId())).thenReturn(Optional.of(room));
+            when(bookingRepo.countByRoomIdAndBookingStatusNotAndCheckInDateLessThanAndCheckOutDateGreaterThan(
+                    any(), any(), any(), any())).thenReturn(5L);
 
             assertThrows(RoomNotAvailableException.class, () -> bookingService.bookHotel(request, userId, "traveler@example.com"));
             verify(bookingRepo, never()).save(any());
@@ -109,7 +109,7 @@ class HotelBookingServiceImplTest {
     class CancelBooking {
 
         @Test
-        void restoresAvailability_andMarksCancelled() {
+        void marksCancelled_withoutChangingDateRangeInventory() {
             room.setAvailableRooms(4);
             HotelBooking booking = new HotelBooking();
             booking.setId(UUID.randomUUID());
@@ -118,13 +118,12 @@ class HotelBookingServiceImplTest {
             booking.setBookingStatus(BookingStatus.CONFIRMED);
 
             when(bookingRepo.findById(booking.getId())).thenReturn(Optional.of(booking));
-            when(roomRepo.save(any(Room.class))).thenAnswer(i -> i.getArgument(0));
             when(bookingRepo.save(any(HotelBooking.class))).thenAnswer(i -> i.getArgument(0));
 
             bookingService.cancelBooking(booking.getId(), userId, "traveler@example.com");
 
             assertEquals(BookingStatus.CANCELLED, booking.getBookingStatus());
-            assertEquals(5, room.getAvailableRooms(), "Availability restored on cancel");
+            assertEquals(4, room.getAvailableRooms(), "Availability is computed from overlapping active bookings");
         }
 
         @Test

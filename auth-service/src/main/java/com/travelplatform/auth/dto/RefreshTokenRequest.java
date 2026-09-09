@@ -2,6 +2,7 @@ package com.travelplatform.auth.dto;
 
 import java.util.UUID;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 
 /** Body for /auth/refresh-token and /auth/logout. */

@@ -3,6 +3,8 @@ package com.travelplatform.rideshare.repository;
 import com.travelplatform.rideshare.entity.Ride;
 import com.travelplatform.rideshare.enums.RideStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -13,6 +15,9 @@ import java.util.UUID;
 
 @Repository
 public interface RideRepository extends JpaRepository<Ride, UUID> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    java.util.Optional<Ride> findForUpdateById(UUID id);
 
     /**
      * Search only rides that are still bookable (excludes COMPLETED/CANCELLED).
